@@ -120,7 +120,6 @@ interface pipeline_registers_if;
 
     modport EXMEM (
         input en,
-        input flush,
 
         input pc_in,
         input pc_plus4_in,
@@ -149,7 +148,6 @@ interface pipeline_registers_if;
 
     modport MEMWB (
         input en,
-        input flush,
 
         input pc_in,
         input pc_plus4_in,
