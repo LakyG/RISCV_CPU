@@ -9,7 +9,8 @@ interface pipeline_registers_if;
     import control_word::*;
 
     // Pipeline Control
-    logic flush, en;
+    logic en;
+    logic flush;
 
     // IF/ID
     rv32i_word pc_in;
@@ -60,6 +61,9 @@ interface pipeline_registers_if;
     rv32i_word dmem_rdata;
 
     modport IFID (
+        input en,
+        input flush,
+
         input pc_in,
         input pc_plus4_in,
         input imem_rdata_in,
@@ -80,6 +84,9 @@ interface pipeline_registers_if;
     );
 
     modport IDEX (
+        input en,
+        input flush,
+
         input pc_in,
         input pc_plus4_in,
 
@@ -112,6 +119,9 @@ interface pipeline_registers_if;
     );
 
     modport EXMEM (
+        input en,
+        input flush,
+
         input pc_in,
         input pc_plus4_in,
         input control_word_in,
@@ -138,6 +148,9 @@ interface pipeline_registers_if;
     );
 
     modport MEMWB (
+        input en,
+        input flush,
+
         input pc_in,
         input pc_plus4_in,
         input control_word_in,

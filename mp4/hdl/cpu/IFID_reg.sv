@@ -8,6 +8,8 @@ module IFID_reg (
     input pipeline_registers_if.IFID IFID_if
 );
 
-    always_ff @ (posedge CLK)
+    always_ff @ (posedge CLK, posedge rst) begin
+        
+    end
 
 endmodule
