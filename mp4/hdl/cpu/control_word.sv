@@ -20,3 +20,5 @@ typedef struct packed {
     logic [2:0] funct3;
     branch_funct3_t cmpop;
 } rv32i_control_word;
+
+endpackage : control_word
