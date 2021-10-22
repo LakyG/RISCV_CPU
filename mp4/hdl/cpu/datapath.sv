@@ -1,5 +1,5 @@
 `define BAD_MUX_SEL $fatal("%0t %s %0d: Illegal mux select", $time, `__FILE__, `__LINE__)
-`include "pipeline_registers_if.sv"
+// `include "pipeline_registers_if.sv"
 import rv32i_types::*;
 
 
@@ -47,9 +47,9 @@ rv32i_opcode opcode;
 //ir
 //logic [2:0] funct3;
 //logic [6:0] funct7;
-rv32i_word mem_addr;
+//rv32i_word mem_addr;
 
-assign mem_addr = mem_address;
+//assign mem_addr = mem_address;
 
 logic [31:0] i_imm, s_imm, b_imm, u_imm, j_imm;
 logic [4:0] rs1_ir, rs2_ir, rd;
@@ -57,16 +57,16 @@ assign rs1 = rs1_ir;
 assign rs2 = rs2_ir;
 assign opcode_out = opcode;
 
-pipeline_registers_if.IFID IFID_if;
-pipeline_registers_if.IFID IDEX_if;
-pipeline_registers_if.IFID EXMEM_if;
-pipeline_registers_if.IFID MEMWB_if;
+pipeline_registers_if IFID_if();
+pipeline_registers_if IDEX_if();
+pipeline_registers_if EXMEM_if();
+pipeline_registers_if MEMWB_if();
 
 //regfile
 rv32i_word regfilemux_out;
 //pc
 logic load_pc;
-pcmux_sel_t pcmux_sel;
+pcmux::pcmux_sel_t pcmux_sel;
 //alu
 logic [31:0] alumux1_out, alumux2_out;
 //cmp
@@ -135,6 +135,11 @@ assign MEMWB_if.dmem_rdata_in = dmem_rdata;
 //     .out  (mdrreg_out)
 // );
 
+IFID_reg IFID(.*);
+IDEX_reg IDEX(.*);
+EXMEM_reg EXMEM(.*);
+MEMWB_reg MEMWB(.*);
+
 pc_register PC(
     .*,
     .load (load_pc),
@@ -142,12 +147,14 @@ pc_register PC(
     .out (IFID_if.pc_in)
 );
 
+
+
 control control(
     .opcode (IFID_if.opcode),
     .funct3 (IFID_if.funct3),
     .funct7 (IFID_if.funct7),
     .ctrl (IDEX_if.control_word_in)
-)
+);
 
 
 regfile regfile(
@@ -164,7 +171,7 @@ regfile regfile(
 );
 
 alu ALU(
-    .*,
+    .aluop (IDEX_if.control_word.aluop),
     .a (alumux1_out),
     .b (alumux2_out),
     .f (EXMEM_if.alu_out_in)
@@ -219,7 +226,7 @@ always_comb begin : MUXES
         default: `BAD_MUX_SEL;
     endcase
 
-    unique case (MEMWB_if.regfilemux_sel)
+    unique case (MEMWB_if.control_word.regfilemux_sel)
         regfilemux::alu_out: regfilemux_out = MEMWB_if.alu_out;
         regfilemux::br_en: regfilemux_out = {31'b0, MEMWB_if.br_en}; 
         regfilemux::u_imm: regfilemux_out = MEMWB_if.u_imm; 
@@ -277,7 +284,7 @@ always_comb begin : MUXES
         default: `BAD_MUX_SEL;
     endcase
 
-    unique case (IDEX_if.control_word.alumux1_sel)
+    unique case (IDEX_if.control_word.alumux2_sel)
         alumux::i_imm: alumux2_out = IDEX_if.i_imm;
         alumux::u_imm: alumux2_out = IDEX_if.u_imm;
         alumux::b_imm: alumux2_out = IDEX_if.b_imm;

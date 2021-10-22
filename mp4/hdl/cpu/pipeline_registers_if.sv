@@ -1,12 +1,12 @@
 // This is the interface for all the pipeline stages
 
-`include "rv32i_types.sv"
-`include "control_word.sv"
+// `include "rv32i_types.sv"
+// `include "control_word.sv"
+import rv32i_types::*;
+import control_word::*;
 
 interface pipeline_registers_if;
-    import rv32i_mux_types::*;
-    import rv32i_types::*;
-    import control_word::*;
+
 
     // Pipeline Control
     logic en;
@@ -21,7 +21,7 @@ interface pipeline_registers_if;
     rv32i_word pc_plus4;
     logic [2:0] funct3;
     logic [6:0] funct7;
-    logic rv32i_opcode opcode;
+    rv32i_opcode opcode;
     logic [31:0] i_imm;
     logic [31:0] s_imm;
     logic [31:0] b_imm;
@@ -111,7 +111,7 @@ interface pipeline_registers_if;
         output j_imm,
         output rs1,
         output rs2,
-        output rd
+        output rd,
 
         output control_word,
         output rs1_out,

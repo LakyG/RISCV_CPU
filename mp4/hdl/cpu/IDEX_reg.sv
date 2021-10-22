@@ -1,6 +1,6 @@
-`include "rv32i_types.sv"
-`include "control_word.sv"
-`include "pipeline_registers_if.sv"
+// `include "rv32i_types.sv"
+// `include "control_word.sv"
+// `include "pipeline_registers_if.sv"
 
 module IDEX_reg (
     input clk,
@@ -8,7 +8,7 @@ module IDEX_reg (
     pipeline_registers_if.IDEX IDEX_if
 );
 
-    always_ff @ (posedge CLK, posedge rst) begin
+    always_ff @ (posedge clk, posedge rst) begin
         if (rst) begin
             IDEX_if.pc              <= '0;
             IDEX_if.pc_plus4        <= '0;

@@ -1,6 +1,6 @@
-`include "rv32i_types.sv"
-`include "control_word.sv"
-`include "pipeline_registers_if.sv"
+// `include "rv32i_types.sv"
+// `include "control_word.sv"
+// `include "pipeline_registers_if.sv"
 
 module IFID_reg (
     input clk,
@@ -27,7 +27,7 @@ module IFID_reg (
         .rd(IFID_if.rd)
     );
 
-    always_ff @ (posedge CLK, posedge rst) begin
+    always_ff @ (posedge clk, posedge rst) begin
         if (rst) begin
             IFID_if.pc          <= '0;
             IFID_if.pc_plus4    <= '0;

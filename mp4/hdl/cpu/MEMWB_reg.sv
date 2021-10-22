@@ -1,6 +1,6 @@
-`include "rv32i_types.sv"
-`include "control_word.sv"
-`include "pipeline_registers_if.sv"
+// `include "rv32i_types.sv"
+// `include "control_word.sv"
+// `include "pipeline_registers_if.sv"
 
 module MEMWB_reg (
     input clk,
@@ -8,7 +8,7 @@ module MEMWB_reg (
     pipeline_registers_if.MEMWB MEMWB_if
 );
 
-    always_ff @ (posedge CLK, posedge rst) begin
+    always_ff @ (posedge clk, posedge rst) begin
         if (rst) begin
             MEMWB_if.pc             <= '0;
             MEMWB_if.pc_plus4       <= '0;

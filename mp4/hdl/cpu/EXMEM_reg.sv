@@ -1,6 +1,6 @@
-`include "rv32i_types.sv"
-`include "control_word.sv"
-`include "pipeline_registers_if.sv"
+// `include "rv32i_types.sv"
+// `include "control_word.sv"
+// `include "pipeline_registers_if.sv"
 
 module EXMEM_reg (
     input clk,
@@ -8,7 +8,7 @@ module EXMEM_reg (
     pipeline_registers_if.EXMEM EXMEM_if
 );
 
-    always_ff @ (posedge CLK, posedge rst) begin
+    always_ff @ (posedge clk, posedge rst) begin
         if (rst) begin
             EXMEM_if.pc             <= '0;
             EXMEM_if.pc_plus4       <= '0;
