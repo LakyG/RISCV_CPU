@@ -1,4 +1,5 @@
 import rv32i_types::*; /* Import types defined in rv32i_types.sv */
+import control_word::*;
 
 module control
 (
@@ -7,134 +8,8 @@ module control
     input rv32i_opcode opcode,
     input logic [2:0] funct3,
     input logic [6:0] funct7,
-    input logic br_en,
-    input logic [4:0] rs1,
-    input logic [4:0] rs2,
-    output pcmux::pcmux_sel_t pcmux_sel,
-    output alumux::alumux1_sel_t alumux1_sel,
-    output alumux::alumux2_sel_t alumux2_sel,
-    output regfilemux::regfilemux_sel_t regfilemux_sel,
-    output marmux::marmux_sel_t marmux_sel,
-    output cmpmux::cmpmux_sel_t cmpmux_sel,
-    output alu_ops aluop,
-    output logic load_pc,
-    output logic load_ir,
-    output logic load_regfile,
-    output logic load_mar,
-    output logic load_mdr,
-    output logic load_data_out,
-    input logic mem_resp,
-	output logic mem_read,
-    output logic mem_write,
-    output logic [3:0] mem_byte_enable,
-    output branch_funct3_t cmpop,
-    input logic [1:0] addr_2bit
+    output rv32i_control_word ctrl
 );
-
-/***************** USED BY RVFIMON --- ONLY MODIFY WHEN TOLD *****************/
-logic trap;
-logic [4:0] rs1_addr, rs2_addr;
-logic [3:0] rmask, wmask;
-
-branch_funct3_t branch_funct3;
-store_funct3_t store_funct3;
-load_funct3_t load_funct3;
-arith_funct3_t arith_funct3;
-
-assign arith_funct3 = arith_funct3_t'(funct3);
-assign branch_funct3 = branch_funct3_t'(funct3);
-assign load_funct3 = load_funct3_t'(funct3);
-assign store_funct3 = store_funct3_t'(funct3);
-assign rs1_addr = rs1;
-assign rs2_addr = rs2;
-
-always_comb
-begin : trap_check
-    trap = 0;
-    rmask = '0;
-    wmask = '0;
-
-    case (opcode)
-        op_lui, op_auipc, op_imm, op_reg, op_jal, op_jalr:;
-
-        op_br: begin
-            case (branch_funct3)
-                beq, bne, blt, bge, bltu, bgeu:;
-                default: trap = 1;
-            endcase
-        end
-
-        op_load: begin
-            case (load_funct3)
-                lw: rmask = 4'b1111;
-                lh, lhu: rmask = 4'bXXXX /* Modify for MP1 Final */ ;
-                // lh, lhu: begin
-                //     unique case (addr_2bit):
-                //         2'b00: rmask = 4'b0011;
-                //         2'b10: rmask = 4'b1100;
-                //         default: rmask = 4'b1111;
-                //     endcase
-                // end
-                lb, lbu: rmask = 4'bXXXX /* Modify for MP1 Final */ ;
-                // lb, lbu: begin
-                //     unique case (addr_2bit):
-                //         2'b00: rmask = 4'b0001;
-                //         2'b01: rmask = 4'b0010;
-                //         2'b10: rmask = 4'b0100;
-                //         2'b11: rmask = 4'b1000;
-                //         default: rmask = 4'b1111;
-                //     endcase
-                // end
-                default: trap = 1;
-            endcase
-        end
-
-        op_store: begin
-            case (store_funct3)
-                sw: wmask = 4'b1111;
-                sh: begin
-                    unique case (addr_2bit)
-                        2'b00: wmask = 4'b0011;
-                        2'b01: wmask = 4'b0110;
-                        2'b10: wmask = 4'b1100;
-                        default: wmask = 4'b1111;
-                    endcase
-                end
-                sb: begin
-                    unique case (addr_2bit)
-                        2'b00: wmask = 4'b0001;
-                        2'b01: wmask = 4'b0010;
-                        2'b10: wmask = 4'b0100;
-                        2'b11: wmask = 4'b1000;
-                        default: wmask = 4'b1111;
-                    endcase
-                end
-                default: trap = 1;
-            endcase
-        end
-
-        default: trap = 1;
-    endcase
-end
-/*****************************************************************************/
-
-enum int unsigned {
-    /* List of states */
-    fetch1, fetch2, fetch3, decode, imm, br, lui, auipc, calc_addr, ld1, ld2, st1, st2, sreg, jal, jalr
-} state, next_states;
-
-/************************* Function Definitions *******************************/
-/**
- *  You do not need to use these functions, but it can be nice to encapsulate
- *  behavior in such a way.  For example, if you use the `loadRegfile`
- *  function, then you only need to ensure that you set the load_regfile bit
- *  to 1'b1 in one place, rather than in many.
- *
- *  SystemVerilog functions must take zero "simulation time" (as opposed to 
- *  tasks).  Thus, they are generally synthesizable, and appropraite
- *  for design code.  Arguments to functions are, by default, input.  But
- *  may be passed as outputs, inouts, or by reference using the `ref` keyword.
-**/
 
 /**
  *  Rather than filling up an always_block with a whole bunch of default values,

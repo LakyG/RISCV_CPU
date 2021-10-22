@@ -1,5 +1,5 @@
 package control_word;
-import import rv32i_types::*;
+import rv32i_types::*;
 
 typedef struct packed {
     pcmux::pcmux_sel_t pcmux_sel;
