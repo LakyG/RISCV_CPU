@@ -1,36 +1,39 @@
 `define BAD_MUX_SEL $fatal("%0t %s %0d: Illegal mux select", $time, `__FILE__, `__LINE__)
-
+`include "pipeline_registers_if.sv"
 import rv32i_types::*;
+
 
 module datapath
 (
     input clk,
     input rst,
-    input load_mdr,
-    input rv32i_word mem_rdata,
-    output rv32i_word mem_wdata, // signal used by RVFI Monitor
-	 output rv32i_word mem_address,
+    // input load_mdr,
+    input rv32i_word dmem_rdata,
+    output rv32i_word dmem_wdata, // signal used by RVFI Monitor
+	output rv32i_word dmem_address,
+    input rv32i_word imem_rdata,
+    output rv32i_word imem_address
     /* You will need to connect more signals to your datapath module*/
-    input load_ir,
-    input load_regfile,
-    input alu_ops aluop,
-    input load_pc,
-    input load_mar,
-	input logic load_data_out,
-    input pcmux::pcmux_sel_t pcmux_sel,
-    input alumux::alumux1_sel_t alumux1_sel,
-    input alumux::alumux2_sel_t alumux2_sel,
-    input regfilemux::regfilemux_sel_t regfilemux_sel,
-    input marmux::marmux_sel_t marmux_sel,
-    input cmpmux::cmpmux_sel_t cmpmux_sel,
-    output rv32i_opcode opcode_out,
-    output logic [2:0] funct3,
-    output logic [6:0] funct7,
-    output logic br_en,
-    output logic [4:0] rs1,
-    output logic [4:0] rs2,
-    input branch_funct3_t cmpop,
-    output logic [1:0] addr_2bit
+    // input load_ir,
+    // input load_regfile,
+    // input alu_ops aluop,
+    // input load_pc,
+    // input load_mar,
+	// input logic load_data_out,
+    // input pcmux::pcmux_sel_t pcmux_sel,
+    // input alumux::alumux1_sel_t alumux1_sel,
+    // input alumux::alumux2_sel_t alumux2_sel,
+    // input regfilemux::regfilemux_sel_t regfilemux_sel,
+    // input marmux::marmux_sel_t marmux_sel,
+    // input cmpmux::cmpmux_sel_t cmpmux_sel,
+    // output rv32i_opcode opcode_out,
+    // output logic [2:0] funct3,
+    // output logic [6:0] funct7,
+    // output logic br_en,
+    // output logic [4:0] rs1,
+    // output logic [4:0] rs2,
+    // input branch_funct3_t cmpop,
+    // output logic [1:0] addr_2bit
 );
 
 /******************* Signals Needed for RVFI Monitor *************************/
@@ -54,61 +57,109 @@ assign rs1 = rs1_ir;
 assign rs2 = rs2_ir;
 assign opcode_out = opcode;
 
+pipeline_registers_if.IFID IFID_if;
+pipeline_registers_if.IFID IDEX_if;
+pipeline_registers_if.IFID EXMEM_if;
+pipeline_registers_if.IFID MEMWB_if;
+
 //regfile
-logic [31:0] regfilemux_out;
-logic [31:0] rs1_out, rs2_out;
-
+rv32i_word regfilemux_out;
+//pc
+logic load_pc;
+pcmux_sel_t pcmux_sel;
 //alu
-logic [31:0] alumux1_out, alumux2_out, alu_out;
-
-//mar
-logic [31:0] marmux_out, mar_out;
-assign mem_address = {mar_out[31:2], 2'b0};
-assign addr_2bit = mar_out[1:0];
-
+logic [31:0] alumux1_out, alumux2_out;
+//cmp
 logic [31:0] cmpmux_out;
 
-logic [31:0] data_out;
-always_comb begin
-    unique case (addr_2bit)
-        2'b00: mem_wdata = data_out;
-        2'b01: mem_wdata = data_out << 8;
-        2'b10: mem_wdata = data_out << 16;
-        2'b11: mem_wdata = data_out << 24;
-        default: mem_wdata = data_out;
-    endcase
-end
+//IFID_if
+assign IFID_if.pc_plus4_in = IFID_if.pc_in + 4;
+assign IFID_if.imem_rdata_in = imem_rdata;
+assign imem_address = IFID_if.pc_in;
+
+//IDEX_if
+assign IDEX_if.pc_in = IFID_if.pc;
+assign IDEX_if.pc_plus4_in = IFID_if.pc_plus4;
+assign IDEX_if.i_imm_in = IFID_if.i_imm;
+assign IDEX_if.s_imm_in = IFID_if.s_imm;
+assign IDEX_if.b_imm_in = IFID_if.b_imm;
+assign IDEX_if.u_imm_in = IFID_if.u_imm;
+assign IDEX_if.j_imm_in = IFID_if.j_imm;
+assign IDEX_if.rd_in = IFID_if.rd;
+assign IDEX_if.rs1_in = IFID_if.rs1;
+assign IDEX_if.rs2_in = IFID_if.rs2;
+
+//EXMEM_if
+assign EXMEM_if.pc_in = IDEX_if.pc;
+assign EXMEM_if.pc_plus4_in = IDEX_if.pc_plus4;
+assign EXMEM_if.control_word_in = IDEX_if.control_word;
+assign EXMEM_if.u_imm_in = IDEX_if.u_imm;
+assign EXMEM_if.rs1_in = IDEX_if.rs1;
+assign EXMEM_if.rs2_in = IDEX_if.rs2;
+assign EXMEM_if.rd_in = IDEX_if.rd;
+assign EXMEM_if.rs2_out_in = IDEX_if.rs2_out;
+
+assign dmem_address = EXMEM_if.alu_out;
+assign dmem_wdata = EXMEM_if.rs2_out;
+
+//MEMWB_if
+assign MEMWB_if.pc_in = EXMEM_if.pc;
+assign MEMWB_if.pc_plus4_in = EXMEM_if.pc_plus4;
+assign MEMWB_if.control_word_in = EXMEM_if.control_word;
+assign MEMWB_if.u_imm_in = EXMEM_if.u_imm;
+assign MEMWB_if.rs1_in = EXMEM_if.rs1;
+assign MEMWB_if.rs2_in = EXMEM_if.rs2;
+assign MEMWB_if.rd_in = EXMEM_if.rd;
+assign MEMWB_if.br_en_in = EXMEM_if.br_en;
+assign MEMWB_if.alu_out_in = EXMEM_if.alu_out;
+assign MEMWB_if.dmem_rdata_in = dmem_rdata;
+
 
 
 /***************************** Registers *************************************/
 // Keep Instruction register named `IR` for RVFI Monitor
-ir IR(
+// ir IR(
+//     .*,
+//     .load (load_ir),
+//     .in (mdrreg_out),
+//     .rs1 (rs1_ir),
+//     .rs2 (rs2_ir)
+
+// );
+
+// register MDR(
+//     .clk  (clk),
+//     .rst (rst),
+//     .load (load_mdr),
+//     .in   (mem_rdata),
+//     .out  (mdrreg_out)
+// );
+
+pc_register PC(
     .*,
-    .load (load_ir),
-    .in (mdrreg_out),
-    .rs1 (rs1_ir),
-    .rs2 (rs2_ir)
-
+    .load (load_pc),
+    .in (pcmux_out),
+    .out (IFID_if.pc_in)
 );
 
-register MDR(
-    .clk  (clk),
-    .rst (rst),
-    .load (load_mdr),
-    .in   (mem_rdata),
-    .out  (mdrreg_out)
-);
+control control(
+    .opcode (IFID_if.opcode),
+    .funct3 (IFID_if.funct3),
+    .funct7 (IFID_if.funct7),
+    .ctrl (IDEX_if.control_word_in)
+)
+
 
 regfile regfile(
     .*,
-    .load (load_regfile),
+    .load (MEMWB_if.control_word.load_regfile),
     .in (regfilemux_out),
-    .src_a (rs1_ir),
-    .src_b (rs2_ir),
-    .dest (rd),
-    .reg_a (rs1_out),
-    .reg_b (rs2_out)
- 
+    .src_a (IFID_if.rs1),
+    .src_b (IFID_if.rs2),
+    .dest (MEMWB_if.rd),
+    .reg_a (IDEX_if.rs1_out_in),
+    .reg_b (IDEX_if.rs2_out_in)
+    
 
 );
 
@@ -116,33 +167,33 @@ alu ALU(
     .*,
     .a (alumux1_out),
     .b (alumux2_out),
-    .f (alu_out)
+    .f (EXMEM_if.alu_out_in)
 );
 
-pc_register PC(
-    .*,
-    .load (load_pc),
-    .in (pcmux_out),
-    .out (pc_out)
-);
 
-register MAR(
-    .clk  (clk),
-    .rst (rst),
-    .load (load_mar),
-    .in   (marmux_out),
-    .out  (mar_out)
-);
 
-register mem_data_out(
-    .clk  (clk),
-    .rst (rst),
-    .load (load_data_out),
-    .in   (rs2_out),
-    .out  (data_out)
-);
+// register MAR(
+//     .clk  (clk),
+//     .rst (rst),
+//     .load (load_mar),
+//     .in   (marmux_out),
+//     .out  (mar_out)
+// );
 
-cmp CMP(.*);
+// register mem_data_out(
+//     .clk  (clk),
+//     .rst (rst),
+//     .load (load_data_out),
+//     .in   (rs2_out),
+//     .out  (data_out)
+// );
+
+cmp CMP(
+    .rs1_out (IDEX_if.rs1),
+    .cmpmux_out,
+    .cmpop (IDEX_if.control_word.cmpop),
+    .br_en (EXMEM_if.br_en_in)
+);
 
 
 
@@ -161,54 +212,54 @@ always_comb begin : MUXES
     // Offensive programming --- making simulation halt with a fatal message
     // warning when an unexpected mux select value occurs
     unique case (pcmux_sel)
-        pcmux::pc_plus4: pcmux_out = pc_out + 4;
-        pcmux::alu_out: pcmux_out = alu_out;
-        pcmux::alu_mod2: pcmux_out = {alu_out[31:1], 1'b0}; 
+        pcmux::pc_plus4: pcmux_out = IFID_if.pc_in + 4;
+        pcmux::alu_out: pcmux_out = EXMEM_if.alu_out_in;
+        pcmux::alu_mod2: pcmux_out = {EXMEM_if.alu_out_in[31:1], 1'b0}; 
         // etc.
         default: `BAD_MUX_SEL;
     endcase
 
-    unique case (regfilemux_sel)
-        regfilemux::alu_out: regfilemux_out = alu_out;
-        regfilemux::br_en: regfilemux_out = {31'b0, br_en}; 
-        regfilemux::u_imm: regfilemux_out = u_imm; 
-        regfilemux::lw: regfilemux_out = mdrreg_out; 
-        regfilemux::pc_plus4: regfilemux_out = pc_out + 4;
+    unique case (MEMWB_if.regfilemux_sel)
+        regfilemux::alu_out: regfilemux_out = MEMWB_if.alu_out;
+        regfilemux::br_en: regfilemux_out = {31'b0, MEMWB_if.br_en}; 
+        regfilemux::u_imm: regfilemux_out = MEMWB_if.u_imm; 
+        regfilemux::lw: regfilemux_out = MEMWB_if.dmem_rdata; 
+        regfilemux::pc_plus4: regfilemux_out = MEMWB_if.pc_plus4;
         regfilemux::lb: begin
-            unique case (addr_2bit)
-                2'b00: regfilemux_out = {{24{mdrreg_out[7]}},mdrreg_out[7:0]};
-                2'b01: regfilemux_out = {{24{mdrreg_out[15]}},mdrreg_out[15:8]};
-                2'b10: regfilemux_out = {{24{mdrreg_out[23]}},mdrreg_out[23:16]};
-                2'b11: regfilemux_out = {{24{mdrreg_out[31]}},mdrreg_out[31:24]};
-                default: regfilemux_out = mdrreg_out;
+            unique case (MEMWB_if.alu_out[1:0])
+                2'b00: regfilemux_out = {{24{MEMWB_if.dmem_rdata[7]}},MEMWB_if.dmem_rdata[7:0]};
+                2'b01: regfilemux_out = {{24{MEMWB_if.dmem_rdata[15]}},MEMWB_if.dmem_rdata[15:8]};
+                2'b10: regfilemux_out = {{24{MEMWB_if.dmem_rdata[23]}},MEMWB_if.dmem_rdata[23:16]};
+                2'b11: regfilemux_out = {{24{MEMWB_if.dmem_rdata[31]}},MEMWB_if.dmem_rdata[31:24]};
+                default: regfilemux_out = MEMWB_if.dmem_rdata;
             endcase
             
         end
         regfilemux::lbu: begin
-            unique case (addr_2bit)
-                2'b00: regfilemux_out = {24'b0,mdrreg_out[7:0]};
-                2'b01: regfilemux_out = {24'b0,mdrreg_out[15:8]};
-                2'b10: regfilemux_out = {24'b0,mdrreg_out[23:16]};
-                2'b11: regfilemux_out = {24'b0,mdrreg_out[31:24]};
-                default: regfilemux_out = mdrreg_out;
+            unique case (MEMWB_if.alu_out[1:0])
+                2'b00: regfilemux_out = {24'b0,MEMWB_if.dmem_rdata[7:0]};
+                2'b01: regfilemux_out = {24'b0,MEMWB_if.dmem_rdata[15:8]};
+                2'b10: regfilemux_out = {24'b0,MEMWB_if.dmem_rdata[23:16]};
+                2'b11: regfilemux_out = {24'b0,MEMWB_if.dmem_rdata[31:24]};
+                default: regfilemux_out = MEMWB_if.dmem_rdata;
             endcase
             
         end
         regfilemux::lh: begin
-            unique case (addr_2bit)
-                2'b00: regfilemux_out = {{16{mdrreg_out[15]}},mdrreg_out[15:0]};
-                2'b01: regfilemux_out = {{16{mdrreg_out[23]}},mdrreg_out[23:8]};
-                2'b10: regfilemux_out = {{16{mdrreg_out[31]}},mdrreg_out[31:16]};
-                default: regfilemux_out = mdrreg_out;
+            unique case (MEMWB_if.alu_out[1:0])
+                2'b00: regfilemux_out = {{16{MEMWB_if.dmem_rdata[15]}},MEMWB_if.dmem_rdata[15:0]};
+                2'b01: regfilemux_out = {{16{MEMWB_if.dmem_rdata[23]}},MEMWB_if.dmem_rdata[23:8]};
+                2'b10: regfilemux_out = {{16{MEMWB_if.dmem_rdata[31]}},MEMWB_if.dmem_rdata[31:16]};
+                default: regfilemux_out = MEMWB_if.dmem_rdata;
             endcase
             
         end
         regfilemux::lhu: begin
-            unique case (addr_2bit)
-                2'b00: regfilemux_out = {16'b0,mdrreg_out[15:0]};
-                2'b01: regfilemux_out = {16'b0,mdrreg_out[23:8]};
-                2'b10: regfilemux_out = {16'b0,mdrreg_out[31:16]};
-                default: regfilemux_out = mdrreg_out;
+            unique case (MEMWB_if.alu_out[1:0])
+                2'b00: regfilemux_out = {16'b0,MEMWB_if.dmem_rdata[15:0]};
+                2'b01: regfilemux_out = {16'b0,MEMWB_if.dmem_rdata[23:8]};
+                2'b10: regfilemux_out = {16'b0,MEMWB_if.dmem_rdata[31:16]};
+                default: regfilemux_out = MEMWB_if.dmem_rdata;
             endcase
             
         end
@@ -218,37 +269,37 @@ always_comb begin : MUXES
         default: `BAD_MUX_SEL;
     endcase
 
-    unique case (alumux1_sel)
-        alumux::rs1_out: alumux1_out = rs1_out;
-        alumux::pc_out: alumux1_out = pc_out;
+    unique case (IDEX_if.control_word.alumux1_sel)
+        alumux::rs1_out: alumux1_out = IDEX_if.rs1_out;
+        alumux::pc_out: alumux1_out = IDEX_if.pc;
 
         // etc.
         default: `BAD_MUX_SEL;
     endcase
 
-    unique case (alumux2_sel)
-        alumux::i_imm: alumux2_out = i_imm;
-        alumux::u_imm: alumux2_out = u_imm;
-        alumux::b_imm: alumux2_out = b_imm;
-        alumux::s_imm: alumux2_out = s_imm;
-        alumux::j_imm: alumux2_out = j_imm;
-        alumux::rs2_out: alumux2_out = rs2_out;
+    unique case (IDEX_if.control_word.alumux1_sel)
+        alumux::i_imm: alumux2_out = IDEX_if.i_imm;
+        alumux::u_imm: alumux2_out = IDEX_if.u_imm;
+        alumux::b_imm: alumux2_out = IDEX_if.b_imm;
+        alumux::s_imm: alumux2_out = IDEX_if.s_imm;
+        alumux::j_imm: alumux2_out = IDEX_if.j_imm;
+        alumux::rs2_out: alumux2_out = IDEX_if.rs2_out;
 
         // etc.
         default: `BAD_MUX_SEL;
     endcase
 
-    unique case (marmux_sel)
-        marmux::pc_out: marmux_out = pc_out;
-        marmux::alu_out: marmux_out = alu_out;
+    // unique case (marmux_sel)
+    //     marmux::pc_out: marmux_out = pc_out;
+    //     marmux::alu_out: marmux_out = alu_out;
 
-        // etc.
-        default: `BAD_MUX_SEL;
-    endcase
+    //     // etc.
+    //     default: `BAD_MUX_SEL;
+    // endcase
 
-    unique case (cmpmux_sel)
-        cmpmux::rs2_out: cmpmux_out = rs2_out;
-        cmpmux::i_imm: cmpmux_out = i_imm;
+    unique case (IDEX_if.control_word.cmpmux_sel)
+        cmpmux::rs2_out: cmpmux_out = IDEX_if.rs2_out;
+        cmpmux::i_imm: cmpmux_out = IDEX_if.i_imm;
 
         // etc.
         default: `BAD_MUX_SEL;
