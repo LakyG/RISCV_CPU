@@ -81,10 +81,9 @@ endfunction
     /* Remember to deal with rst signal */
 
 always_comb
-begin : state_actions
+begin : INSTR_DECODE
     /* Default output assignments */
     set_defaults();
-    /* Actions for each state */
     unique case (opcode)
         op_lui: begin
             loadRegfile(regfilemux::u_imm);
