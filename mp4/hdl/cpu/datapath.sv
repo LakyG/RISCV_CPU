@@ -99,6 +99,7 @@ assign EXMEM_if.rs2_in = IDEX_if.rs2;
 assign EXMEM_if.rd_in = IDEX_if.rd;
 assign EXMEM_if.rs2_out_in = IDEX_if.rs2_out;
 
+//TODO: Add dmem_byte_enable logic
 assign dmem_address = EXMEM_if.alu_out;
 assign dmem_wdata = EXMEM_if.rs2_out;
 
@@ -219,7 +220,7 @@ always_comb begin : MUXES
     // Offensive programming --- making simulation halt with a fatal message
     // warning when an unexpected mux select value occurs
     unique case (pcmux_sel)
-        pcmux::pc_plus4: pcmux_out = IFID_if.pc_in + 4;
+        pcmux::pc_plus4: pcmux_out = IFID_if.pc_plus4_in;
         pcmux::alu_out: pcmux_out = EXMEM_if.alu_out_in;
         pcmux::alu_mod2: pcmux_out = {EXMEM_if.alu_out_in[31:1], 1'b0}; 
         // etc.
