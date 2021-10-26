@@ -30,6 +30,7 @@ always_comb begin
         op_br: pcmux_sel = pcmux_sel_t'(br_en);
         op_jal: pcmux_sel = pcmux::alu_out;
         op_jalr: pcmux_sel = pcmux::alu_mod2;
+        default: pcmux_sel = pcmux::pc_plus4;
     endcase
 end
 

@@ -86,6 +86,7 @@ assign IFID_if.pc_in = pc;
 assign IFID_if.pc_plus4_in = pc + 4;
 assign IFID_if.imem_rdata_in = imem_rdata;
 assign imem_address = pc;
+assign IFID_if.en = 1'b1;
 
 //IDEX_if
 assign IDEX_if.pc_in = IFID_if.pc;
@@ -98,6 +99,7 @@ assign IDEX_if.j_imm_in = IFID_if.j_imm;
 assign IDEX_if.rd_in = IFID_if.rd;
 assign IDEX_if.rs1_in = IFID_if.rs1;
 assign IDEX_if.rs2_in = IFID_if.rs2;
+assign IDEX_if.en = 1'b1;
 
 //EXMEM_if
 assign EXMEM_if.pc_in = IDEX_if.pc;
@@ -108,6 +110,7 @@ assign EXMEM_if.rs1_in = IDEX_if.rs1;
 assign EXMEM_if.rs2_in = IDEX_if.rs2;
 assign EXMEM_if.rd_in = IDEX_if.rd;
 assign EXMEM_if.rs2_out_in = IDEX_if.rs2_out;
+assign EXMEM_if.en = 1'b1;
 
 assign dmem_read = EXMEM_if.control_word.dmem_read;
 assign dmem_write = EXMEM_if.control_word.dmem_write;
@@ -125,6 +128,7 @@ assign MEMWB_if.rd_in = EXMEM_if.rd;
 assign MEMWB_if.br_en_in = EXMEM_if.br_en;
 assign MEMWB_if.alu_out_in = EXMEM_if.alu_out;
 assign MEMWB_if.dmem_rdata_in = dmem_rdata;
+assign MEMWB_if.en = 1'b1;
 
 
 

@@ -95,7 +95,7 @@ begin : INSTR_DECODE
             ctrl.dmem_write = 1'b1;
         end
         op_load: begin
-            setALU(alumux::rs1_out, alumux::s_imm, 1'b1, alu_add);
+            setALU(alumux::rs1_out, alumux::i_imm, 1'b1, alu_add);
             //ctrl.load_mdr = 1'b1;
             ctrl.dmem_read = 1'b1;
             unique case (load_funct3)
