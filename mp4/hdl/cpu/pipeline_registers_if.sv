@@ -5,7 +5,7 @@
 import rv32i_types::*;
 import control_word::*;
 
-interface pipeline_registers_if;
+interface pipeline_registers_if();
 
 
     // Pipeline Control
@@ -173,6 +173,5 @@ interface pipeline_registers_if;
 
         output dmem_rdata
     );
-
-
+    
 endinterface
