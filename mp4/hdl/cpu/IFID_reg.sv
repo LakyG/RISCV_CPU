@@ -11,7 +11,7 @@ module IFID_reg (
     //TODO: The IR needs to flush when the flush signal goes high (check how this should be handled)
     ir IR (
         .*,
-        .load(IFID_if.en),
+        .load(1'b1),
         .in(IFID_if.imem_rdata_in),
         
         .funct3(IFID_if.funct3),
@@ -29,8 +29,8 @@ module IFID_reg (
 
     always_ff @ (posedge clk, posedge rst) begin
         if (rst) begin
-            IFID_if.pc          <= '0;
-            IFID_if.pc_plus4    <= '0;
+            IFID_if.pc          <= 32'h60;
+            IFID_if.pc_plus4    <= 32'h64;
         end
         // else if (IFID_if.en && IFID_if.flush) begin
         //     IFID_if.pc          <= '0;

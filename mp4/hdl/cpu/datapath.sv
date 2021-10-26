@@ -76,6 +76,7 @@ pcmux::pcmux_sel_t pcmux_sel;
 logic [31:0] alumux1_out, alumux2_out;
 //cmp
 logic [31:0] cmpmux_out;
+logic br_en;
 //dmem
 store_funct3_t store_funct3;
 assign store_funct3 = store_funct3_t'(EXMEM_if.control_word.funct3);
@@ -215,9 +216,10 @@ cmp CMP(
 
 hazard_unit hazard(
     .br_en(EXMEM_if.br_en_in),
-
+    .opcode(IDEX_if.control_word.opcode),
     .pc_en(load_pc),
     .pcmux_sel(pcmux_sel)
+    
 );
 
 
@@ -351,6 +353,8 @@ always_comb begin : MUXES
         end
         default: dmem_byte_enable = 4'b1111;
     endcase
+
+    
 
 end
 /*****************************************************************************/

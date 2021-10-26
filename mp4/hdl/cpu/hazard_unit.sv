@@ -1,4 +1,4 @@
-//import rv32i_types::*; /* Import types defined in rv32i_types.sv */
+import rv32i_types::*; /* Import types defined in rv32i_types.sv */
 import pcmux::*;
 
 module hazard_unit
@@ -8,6 +8,7 @@ module hazard_unit
     //input logic dmem_resp,
 
     input logic br_en,
+    input rv32i_opcode opcode,
 
     // PC Control
     output logic pc_en,
@@ -23,6 +24,13 @@ module hazard_unit
 );
 
     assign pc_en = 1;
-    assign pcmux_sel = pcmux_sel_t'(br_en);
+
+always_comb begin
+    unique case (opcode)
+        op_br: pcmux_sel = pcmux_sel_t'(br_en);
+        op_jal: pcmux_sel = pcmux::alu_out;
+        op_jalr: pcmux_sel = pcmux::alu_mod2;
+    endcase
+end
 
 endmodule : hazard_unit
