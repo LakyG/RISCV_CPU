@@ -11,17 +11,17 @@ module cpu
     output logic [31:0] imem_address,
     
     input logic imem_resp,
-    input logic [31:0] imem_rdata;
+    input logic [31:0] imem_rdata,
 
     // D Cache Ports
-    output logic dmem_read;
-    output logic dmem_write;
-    output logic [3:0] dmem_byte_enable;
-    output logic [31:0] dmem_address;
-    output logic [31:0] dmem_wdata;
+    output logic dmem_read,
+    output logic dmem_write,
+    output logic [3:0] dmem_byte_enable,
+    output logic [31:0] dmem_address,
+    output logic [31:0] dmem_wdata,
 
-    input logic dmem_resp;
-    input logic [31:0] dmem_rdata;
+    input logic dmem_resp,
+    input logic [31:0] dmem_rdata
 );
 
 /******************* Signals Needed for RVFI Monitor *************************/
