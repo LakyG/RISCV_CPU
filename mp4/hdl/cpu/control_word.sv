@@ -8,8 +8,8 @@ typedef struct packed {
     cmpmux::cmpmux_sel_t cmpmux_sel;
     alu_ops aluop;
     logic load_regfile;
-    logic mem_read;
-    logic mem_write;
+    logic dmem_read;
+    logic dmem_write;
     rv32i_opcode opcode; //TODO: add this to the control.sv logic
     logic [2:0] funct3;
     branch_funct3_t cmpop;

@@ -50,6 +50,8 @@ marmux::marmux_sel_t marmux_sel;
 cmpmux::cmpmux_sel_t cmpmux_sel;
 /*****************************************************************************/
 
+assign imem_read = 1;
+
 /* Instantiate MP 1 top level blocks here */
 
 // Keep control named `control` for RVFI Monitor
@@ -65,6 +67,8 @@ datapath datapath(
     .clk(clk),
     .rst(rst),
 
+    .dmem_read(dmem_read),
+    .dmem_write(dmem_write),
     .dmem_rdata(dmem_rdata),
     .dmem_wdata(dmem_wdata),
 	.dmem_address(dmem_address),

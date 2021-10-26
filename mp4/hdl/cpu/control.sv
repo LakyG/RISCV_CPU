@@ -30,13 +30,13 @@ assign store_funct3 = store_funct3_t'(funct3);
  *   and then call it at the beginning of your always_comb block.
 **/
 function void set_defaults();
-    ctrl.mem_read = 1'b0;
+    ctrl.dmem_read = 1'b0;
     ctrl.load_regfile = 1'b0;
     ctrl.regfilemux_sel = regfilemux::u_imm;
 	ctrl.aluop = alu_add;
 	ctrl.alumux1_sel = alumux::pc_out;
     ctrl.alumux2_sel = alumux::u_imm;
-    ctrl.mem_write = 1'b0;
+    ctrl.dmem_write = 1'b0;
     ctrl.cmpmux_sel = cmpmux::rs2_out;
     ctrl.cmpop = branch_funct3;
     ctrl.funct3 = funct3;
@@ -92,12 +92,12 @@ begin : INSTR_DECODE
         op_store: begin
             //ctrl.load_data_out = 1'b1;
             setALU(alumux::rs1_out, alumux::s_imm, 1'b1, alu_add);
-            ctrl.mem_write = 1'b1;
+            ctrl.dmem_write = 1'b1;
         end
         op_load: begin
             setALU(alumux::rs1_out, alumux::s_imm, 1'b1, alu_add);
             //ctrl.load_mdr = 1'b1;
-            ctrl.mem_read = 1'b1;
+            ctrl.dmem_read = 1'b1;
             unique case (load_funct3)
                 lw: loadRegfile(regfilemux::lw);
                 lh: loadRegfile(regfilemux::lh);
