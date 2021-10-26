@@ -69,7 +69,7 @@ pipeline_registers_if MEMWB_if();
 //regfile
 rv32i_word regfilemux_out;
 //pc
-logic pc;
+rv32i_word pc;
 logic load_pc;
 pcmux::pcmux_sel_t pcmux_sel;
 //alu
@@ -207,7 +207,7 @@ alu ALU(
 // );
 
 cmp CMP(
-    .rs1_out (IDEX_if.rs1),
+    .rs1_out (IDEX_if.rs1_out),
     .cmpmux_out,
     .cmpop (IDEX_if.control_word.cmpop),
     .br_en (EXMEM_if.br_en_in)
