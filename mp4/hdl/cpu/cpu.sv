@@ -1,16 +1,27 @@
 import rv32i_types::*;
+import control_word::*;
 
 module cpu
 (
     input clk,
     input rst,
-    input mem_resp,
-    input rv32i_word mem_rdata,
-    output logic mem_read,
-    output logic mem_write,
-    output logic [3:0] mem_byte_enable,
-    output rv32i_word mem_address,
-    output rv32i_word mem_wdata
+
+    // I Cache Ports
+    output logic imem_read,
+    output logic [31:0] imem_address,
+    
+    input logic imem_resp,
+    input logic [31:0] imem_rdata;
+
+    // D Cache Ports
+    output logic dmem_read;
+    output logic dmem_write;
+    output logic [3:0] dmem_byte_enable;
+    output logic [31:0] dmem_address;
+    output logic [31:0] dmem_wdata;
+
+    input logic dmem_resp;
+    input logic [31:0] dmem_rdata;
 );
 
 /******************* Signals Needed for RVFI Monitor *************************/
@@ -28,7 +39,7 @@ logic [4:0] rs2;
 rv32i_opcode opcode;
 branch_funct3_t cmpop;
 logic [1:0] addr_2bit;
-
+rv32i_control_word ctrl;
 
 /**************************** Control Signals ********************************/
 pcmux::pcmux_sel_t pcmux_sel;
@@ -42,9 +53,23 @@ cmpmux::cmpmux_sel_t cmpmux_sel;
 /* Instantiate MP 1 top level blocks here */
 
 // Keep control named `control` for RVFI Monitor
-control control(.*);
+control control(
+    .opcode(opcode),
+    .funct3(funct3),
+    .funct7(funct7),
+    .ctrl(ctrl)
+);
 
 // Keep datapath named `datapath` for RVFI Monitor
-datapath datapath(.*, .opcode_out(opcode));
+datapath datapath(
+    .clk(clk),
+    .rst(rest),
+
+    .dmem_rdata(dmem_rdata),
+    .dmem_wdata(dmem_wdata),
+	.dmem_address(dmem_address),
+    .imem_rdata(imem_rdata),
+    .imem_address(imem_address)
+);
 
 endmodule : cpu
