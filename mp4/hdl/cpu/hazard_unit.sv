@@ -1,5 +1,5 @@
 import rv32i_types::*; /* Import types defined in rv32i_types.sv */
-import rv32i_mux_types::*;
+import pcmux::*;
 
 module hazard_unit
 (
@@ -11,7 +11,7 @@ module hazard_unit
 
     // PC Control
     //output logic pc_en,
-    output pcmux_sel_t pcmux_sel,
+    output pcmux_sel_t pcmux_sel
     
     // Pipeline Register Control
     // output logic IFID_en,

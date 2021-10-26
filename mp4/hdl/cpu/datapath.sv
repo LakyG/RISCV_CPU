@@ -12,7 +12,8 @@ module datapath
     output rv32i_word dmem_wdata, // signal used by RVFI Monitor
 	output rv32i_word dmem_address,
     input rv32i_word imem_rdata,
-    output rv32i_word imem_address
+    output rv32i_word imem_address,
+    output logic [3:0] dmem_byte_enable
     /* You will need to connect more signals to your datapath module*/
     // input load_ir,
     // input load_regfile,
@@ -71,6 +72,9 @@ pcmux::pcmux_sel_t pcmux_sel;
 logic [31:0] alumux1_out, alumux2_out;
 //cmp
 logic [31:0] cmpmux_out;
+//dmem
+store_funct3_t store_funct3;
+assign store_funct3 = store_funct3_t'(EXMEM_if.control_word.funct3);
 
 //IFID_if
 assign IFID_if.pc_plus4_in = IFID_if.pc_in + 4;
@@ -203,6 +207,11 @@ cmp CMP(
     .br_en (EXMEM_if.br_en_in)
 );
 
+hazard_unit hazard(
+    .br_en(EXMEM_if.br_en_in),
+    .pcmux_sel(pcmux_sel)
+);
+
 
 
 
@@ -311,6 +320,28 @@ always_comb begin : MUXES
 
         // etc.
         default: `BAD_MUX_SEL;
+    endcase
+
+    unique case (store_funct3)
+        sw: dmem_byte_enable = 4'b1111;
+        sh: begin
+            unique case (dmem_address[1:0])
+                2'b00: dmem_byte_enable = 4'b0011;
+                2'b01: dmem_byte_enable = 4'b0110;
+                2'b10: dmem_byte_enable = 4'b1100;
+                default: dmem_byte_enable = 4'b1111;
+            endcase
+        end
+        sb: begin
+            unique case (dmem_address[1:0])
+                2'b00: dmem_byte_enable = 4'b0001;
+                2'b01: dmem_byte_enable = 4'b0010;
+                2'b10: dmem_byte_enable = 4'b0100;
+                2'b11: dmem_byte_enable = 4'b1000;
+                default: dmem_byte_enable = 4'b1111;
+            endcase
+        end
+        default: dmem_byte_enable = 4'b1111;
     endcase
 
 end
