@@ -114,7 +114,7 @@ assign EXMEM_if.en = 1'b1;
 
 assign dmem_read = EXMEM_if.control_word.dmem_read;
 assign dmem_write = EXMEM_if.control_word.dmem_write;
-assign dmem_address = EXMEM_if.alu_out;
+assign dmem_address = {EXMEM_if.alu_out[31:2], 2'b0};
 assign dmem_wdata = EXMEM_if.rs2_out;
 
 //MEMWB_if
