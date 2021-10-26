@@ -69,6 +69,7 @@ pipeline_registers_if MEMWB_if();
 //regfile
 rv32i_word regfilemux_out;
 //pc
+logic pc;
 logic load_pc;
 pcmux::pcmux_sel_t pcmux_sel;
 //alu
@@ -80,9 +81,10 @@ store_funct3_t store_funct3;
 assign store_funct3 = store_funct3_t'(EXMEM_if.control_word.funct3);
 
 //IFID_if
-assign IFID_if.pc_plus4_in = IFID_if.pc_in + 4;
+assign IFID_if.pc_in = pc;
+assign IFID_if.pc_plus4_in = pc + 4;
 assign IFID_if.imem_rdata_in = imem_rdata;
-assign imem_address = IFID_if.pc_in;
+assign imem_address = pc;
 
 //IDEX_if
 assign IDEX_if.pc_in = IFID_if.pc;
@@ -153,7 +155,7 @@ pc_register PC(
     .*,
     .load (load_pc),
     .in (pcmux_out),
-    .out (IFID_if.pc_in)
+    .out (pc)
 );
 
 
@@ -213,6 +215,8 @@ cmp CMP(
 
 hazard_unit hazard(
     .br_en(EXMEM_if.br_en_in),
+
+    .pc_en(load_pc),
     .pcmux_sel(pcmux_sel)
 );
 

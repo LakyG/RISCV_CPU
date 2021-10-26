@@ -10,7 +10,7 @@ module hazard_unit
     input logic br_en,
 
     // PC Control
-    //output logic pc_en,
+    output logic pc_en,
     output pcmux_sel_t pcmux_sel
     
     // Pipeline Register Control
@@ -22,6 +22,7 @@ module hazard_unit
     // output logic MEMWB_en
 );
 
+    assign pc_en = 1;
     assign pcmux_sel = pcmux_sel_t'(br_en);
 
 endmodule : hazard_unit

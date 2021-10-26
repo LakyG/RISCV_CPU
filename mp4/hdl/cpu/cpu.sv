@@ -54,6 +54,7 @@ assign imem_read = 1;
 
 /* Instantiate MP 1 top level blocks here */
 
+//TODO: Move Control and Hazard (and Forwarding) to CPU module (not datapath)
 // Keep control named `control` for RVFI Monitor
 // control control(
 //     .opcode(opcode),
