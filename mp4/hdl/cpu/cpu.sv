@@ -53,21 +53,23 @@ cmpmux::cmpmux_sel_t cmpmux_sel;
 /* Instantiate MP 1 top level blocks here */
 
 // Keep control named `control` for RVFI Monitor
-control control(
-    .opcode(opcode),
-    .funct3(funct3),
-    .funct7(funct7),
-    .ctrl(ctrl)
-);
+// control control(
+//     .opcode(opcode),
+//     .funct3(funct3),
+//     .funct7(funct7),
+//     .ctrl(ctrl)
+// );
 
 // Keep datapath named `datapath` for RVFI Monitor
 datapath datapath(
     .clk(clk),
-    .rst(rest),
+    .rst(rst),
 
     .dmem_rdata(dmem_rdata),
     .dmem_wdata(dmem_wdata),
 	.dmem_address(dmem_address),
+    .dmem_byte_enable(dmem_byte_enable),
+    
     .imem_rdata(imem_rdata),
     .imem_address(imem_address)
 );

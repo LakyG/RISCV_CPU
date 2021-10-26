@@ -11,9 +11,10 @@ module datapath
     input rv32i_word dmem_rdata,
     output rv32i_word dmem_wdata, // signal used by RVFI Monitor
 	output rv32i_word dmem_address,
+    output logic [3:0] dmem_byte_enable,
+    
     input rv32i_word imem_rdata,
-    output rv32i_word imem_address,
-    output logic [3:0] dmem_byte_enable
+    output rv32i_word imem_address
     /* You will need to connect more signals to your datapath module*/
     // input load_ir,
     // input load_regfile,
@@ -54,9 +55,9 @@ rv32i_opcode opcode;
 
 logic [31:0] i_imm, s_imm, b_imm, u_imm, j_imm;
 logic [4:0] rs1_ir, rs2_ir, rd;
-assign rs1 = rs1_ir;
-assign rs2 = rs2_ir;
-assign opcode_out = opcode;
+//assign rs1 = rs1_ir;
+//assign rs2 = rs2_ir;
+//assign opcode_out = opcode;
 
 pipeline_registers_if IFID_if();
 pipeline_registers_if IDEX_if();
@@ -103,7 +104,6 @@ assign EXMEM_if.rs2_in = IDEX_if.rs2;
 assign EXMEM_if.rd_in = IDEX_if.rd;
 assign EXMEM_if.rs2_out_in = IDEX_if.rs2_out;
 
-//TODO: Add dmem_byte_enable logic
 assign dmem_address = EXMEM_if.alu_out;
 assign dmem_wdata = EXMEM_if.rs2_out;
 
