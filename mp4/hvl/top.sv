@@ -1,3 +1,6 @@
+import rv32i_types::*;
+import pcmux::*;
+
 module mp4_tb;
 `timescale 1ns/10ps
 
@@ -20,6 +23,37 @@ source_tb tb(
 bit f;
 
 /****************************** End do not touch *****************************/
+
+logic commit;
+assign commit = dut.cpu.datapath.load_pc;
+
+int timeout = 100_000_000;
+
+always_comb begin
+    itf.halt = 0;
+    if (dut.cpu.datapath.load_pc) begin
+        unique case (dut.cpu.datapath.MEMWB.MEMWB_if.control_word.opcode)
+            op_br,
+            op_jal: begin
+                if (dut.cpu.datapath.MEMWB.MEMWB_if.pc == dut.cpu.datapath.MEMWB.MEMWB_if.alu_out) begin
+                    itf.halt = 1;
+                end
+            end
+            default: itf.halt = 0;
+        endcase
+    end
+end
+
+// Stop simulation on timeout (stall detection), halt
+always @(posedge itf.clk) begin
+    if (itf.halt)
+        $finish;
+    if (timeout == 0) begin
+        $display("TOP: Timed out");
+        $finish;
+    end
+    timeout <= timeout - 1;
+end
 
 /************************ Signals necessary for monitor **********************/
 // This section not required until CP2

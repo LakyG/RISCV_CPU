@@ -15,6 +15,8 @@ interface tb_itf();
     bit clk, rst;
     always #(`PERIOD_CLK) clk = clk === 1'b0;
 
+    logic halt;
+
     /* Needed to validate correctness */
     logic [31:0] registers[32];
 

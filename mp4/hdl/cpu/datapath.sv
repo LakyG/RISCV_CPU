@@ -74,6 +74,7 @@ logic load_pc;
 pcmux::pcmux_sel_t pcmux_sel;
 //alu
 logic [31:0] alumux1_out, alumux2_out;
+rv32i_word alu_out;
 //cmp
 logic [31:0] cmpmux_out;
 logic br_en;
@@ -110,6 +111,7 @@ assign EXMEM_if.rs1_in = IDEX_if.rs1;
 assign EXMEM_if.rs2_in = IDEX_if.rs2;
 assign EXMEM_if.rd_in = IDEX_if.rd;
 assign EXMEM_if.rs2_out_in = IDEX_if.rs2_out;
+assign EXMEM_if.alu_out_in = alu_out;
 assign EXMEM_if.en = 1'b1;
 
 assign dmem_read = EXMEM_if.control_word.dmem_read;
@@ -190,7 +192,7 @@ alu ALU(
     .aluop (IDEX_if.control_word.aluop),
     .a (alumux1_out),
     .b (alumux2_out),
-    .f (EXMEM_if.alu_out_in)
+    .f (alu_out)
 );
 
 
