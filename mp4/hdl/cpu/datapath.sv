@@ -1,7 +1,7 @@
 `define BAD_MUX_SEL $fatal("%0t %s %0d: Illegal mux select", $time, `__FILE__, `__LINE__)
 // `include "pipeline_registers_if.sv"
 import rv32i_types::*;
-
+import datapath_mux_types::*;
 
 module datapath
 (
@@ -73,10 +73,14 @@ rv32i_word pc;
 logic load_pc;
 pcmux::pcmux_sel_t pcmux_sel;
 //alu
-logic [31:0] alumux1_out, alumux2_out;
+rv32i_word alumux1_out, alumux2_out;
 rv32i_word alu_out;
+rv32i_word forwardingmux1_out;
+rv32i_word forwardingmux2_out;
+forwardingmux_t forwardingmux1_sel;
+forwardingmux_t forwardingmux2_sel;
 //cmp
-logic [31:0] cmpmux_out;
+rv32i_word cmpmux_out;
 logic br_en;
 //dmem
 store_funct3_t store_funct3;
@@ -228,12 +232,21 @@ hazard_unit hazard(
     
 );
 
+forwarding_unit forwarding(
+    .IDEX_rs1(IDEX_if.rs1),
+    .IDEX_rs2(IDEX_if.rs2),
+    .forwardingmux1_sel(forwardingmux1_sel),
+    .forwardingmux1_sel(forwardingmux2_sel),
 
+    // MEM Stage
+    .EXMEM_rd(EXMEM_if.rd),
+    .EXMEM_load_reg(EXMEM_if.control_word.load_regfile),
 
+    // WB Stage
+    .MEMWB_rd(MEMWB_if.rd),
+    .MEMWB_load_reg(MEMWB_if.control_word.load_regfile)
+);
 
-/*****************************************************************************/
-
-/******************************* ALU and CMP *********************************/
 /*****************************************************************************/
 
 /******************************** Muxes **************************************/
@@ -322,6 +335,20 @@ always_comb begin : MUXES
         default: `BAD_MUX_SEL;
     endcase
 
+    // Forwarding Unit Mux 1
+    unique case (forwardingmux1_sel)
+        datapath_mux_types::alumux_out:     forwardingmux1_out = alumux1_out;
+        datapath_mux_types::mem_alu_out:    forwardingmux1_out = EXMEM.alu_out;
+        datapath_mux_types::wb_regfile_mux: forwardingmux1_out = regfilemux_out;
+    endcase
+
+    // Forwarding Unit Mux 2
+    unique case (forwardingmux2_sel)
+        datapath_mux_types::alumux_out:     forwardingmux2_out = alumux2_out;
+        datapath_mux_types::mem_alu_out:    forwardingmux2_out = EXMEM.alu_out;
+        datapath_mux_types::wb_regfile_mux: forwardingmux2_out = regfilemux_out;
+    endcase
+
     // unique case (marmux_sel)
     //     marmux::pc_out: marmux_out = pc_out;
     //     marmux::alu_out: marmux_out = alu_out;
@@ -365,7 +392,6 @@ always_comb begin : MUXES
 end
 /*****************************************************************************/
 endmodule : datapath
-
 
 module cmp
 (
