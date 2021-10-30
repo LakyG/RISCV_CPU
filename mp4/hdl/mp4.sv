@@ -95,7 +95,31 @@ cache dcache (
 
 );
 
-//arbiter arbiter();
-//cacheline_adpater cacheline_adapter();
+logic [255:0] pmem_wdata_c;
+logic [255:0] pmem_rdata_c;
+logic [31:0] pmem_address_c;
+logic pmem_read_c;
+logic pmem_write_c;
+logic pmem_resp_c;
+
+
+arbiter arbiter(.*);
+cacheline_adaptor cacheline_adaptor
+(
+    .*,
+    .reset_n(~rst),
+    .line_i(pmem_wdata_c),
+    .line_o(pmem_rdata_c),
+    .address_i(pmem_address_c),
+    .read_i(pmem_read_c),
+    .write_i(pmem_write_c),
+    .resp_o(pmem_resp_c),
+    .burst_i(pmem_rdata),
+    .burst_o(pmem_wdata),
+    .address_o(pmem_address),
+    .read_o(pmem_read),
+    .write_o(pmem_write),
+    .resp_i(pmem_resp)
+);
 
 endmodule : mp4

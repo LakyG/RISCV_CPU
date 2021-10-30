@@ -6,7 +6,7 @@ module forwarding_unit (
     input rv32i_reg IDEX_rs1,
     input rv32i_reg IDEX_rs2,
     output forwardingmux_t forwardingmux1_sel,
-    output forwardingmux_t forwardingmux1_sel,
+    output forwardingmux_t forwardingmux2_sel,
 
     // MEM Stage
     input rv32i_reg EXMEM_rd,
@@ -29,11 +29,11 @@ module forwarding_unit (
 
         // WB Stage Forwarding
         if (MEMWB_load_reg && (MEMWB_rd != '0)) begin
-            if (~(EXMEM_load_reg && (EXMEM_rd != '0) && (EXMEM.rd != IDEX_rs1))) begin
+            if (~(EXMEM_load_reg && (EXMEM_rd != '0) && (EXMEM_rd != IDEX_rs1))) begin
                 if (MEMWB_rd == IDEX_rs1) forwardingmux1_sel = forwardingmux_t'(wb_regfile_mux);
             end
 
-            if (~(EXMEM_load_reg && (EXMEM_rd != '0) && (EXMEM.rd != IDEX_rs2))) begin
+            if (~(EXMEM_load_reg && (EXMEM_rd != '0) && (EXMEM_rd != IDEX_rs2))) begin
                 if (MEMWB_rd == IDEX_rs2) forwardingmux2_sel = forwardingmux_t'(wb_regfile_mux);
             end
         end

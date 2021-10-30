@@ -236,7 +236,7 @@ forwarding_unit forwarding(
     .IDEX_rs1(IDEX_if.rs1),
     .IDEX_rs2(IDEX_if.rs2),
     .forwardingmux1_sel(forwardingmux1_sel),
-    .forwardingmux1_sel(forwardingmux2_sel),
+    .forwardingmux2_sel(forwardingmux2_sel),
 
     // MEM Stage
     .EXMEM_rd(EXMEM_if.rd),
@@ -338,14 +338,14 @@ always_comb begin : MUXES
     // Forwarding Unit Mux 1
     unique case (forwardingmux1_sel)
         datapath_mux_types::alumux_out:     forwardingmux1_out = alumux1_out;
-        datapath_mux_types::mem_alu_out:    forwardingmux1_out = EXMEM.alu_out;
+        datapath_mux_types::mem_alu_out:    forwardingmux1_out = EXMEM_if.alu_out;
         datapath_mux_types::wb_regfile_mux: forwardingmux1_out = regfilemux_out;
     endcase
 
     // Forwarding Unit Mux 2
     unique case (forwardingmux2_sel)
         datapath_mux_types::alumux_out:     forwardingmux2_out = alumux2_out;
-        datapath_mux_types::mem_alu_out:    forwardingmux2_out = EXMEM.alu_out;
+        datapath_mux_types::mem_alu_out:    forwardingmux2_out = EXMEM_if.alu_out;
         datapath_mux_types::wb_regfile_mux: forwardingmux2_out = regfilemux_out;
     endcase
 
