@@ -1,245 +1,347 @@
 /* MODIFY. The cache datapath. It contains the data,
 valid, dirty, tag, and LRU arrays, comparators, muxes,
 logic gates and other supporting logic. */
-import rv32i_types::*;
+
+import cache_types::*;
 
 module cache_datapath #(
     parameter s_offset = 5,
     parameter s_index  = 3,
-    parameter s_tag    = 32 - s_offset - s_index,
-    parameter s_mask   = 2**s_offset,
-    parameter s_line   = 8*s_mask,
-    parameter num_sets = 2**s_index
+    parameter s_tag    = 32 - s_offset - s_index, //24
+    parameter s_mask   = 2**s_offset, //32
+    parameter s_line   = 8*s_mask, //256
+    parameter num_sets = 2**s_index //8
 )
 (
-    input logic clk,
-    input logic rst,
-    input [31:0] mem_address,
-    input logic load_valid0,
-    input logic load_valid1,
-    input logic valid_in,
-    input logic load_lru,
-    input logic lru_in,
-    input logic [31:0] write_en0,
-    input logic [31:0] write_en1,
-    input logic load_tag0,
-    input logic load_tag1,
-    input logic datamux_sel,
-    input logic load_dirty0,
-    input logic load_dirty1,
-    input logic dirty_in,
-    input logic line0_in_sel,
-    input logic line1_in_sel,
-    input logic addr_sel,
-    input logic [3:0] mem_byte_enable,
-    input rv32i_word mem_wdata,
-    input logic [255:0] pmem_rdata,
-    output logic [31:0] pmem_address,
-    output logic [255:0] mem_rdata256,
-    output logic [255:0] pmem_wdata,
-    output logic tag0_hit,
-    output logic tag1_hit,
-    output logic valid0_out,
-    output logic valid1_out,
-    output logic lru_out,
-    output logic dirty0_out,
-    output logic dirty1_out
-   
+    input clk,
+    input rst,
+    
+    // Inputs
+    // CPU
+    input mem_write,
+    input mem_read,
+    input logic [s_mask-1:0] mem_address,
+    input logic [s_line-1:0] mem_wdata256,
+    input logic [s_mask-1:0] mem_byte_enable256,
+    // Controller
+    input write_data_sel_t write_data_sel,
+    input load,
+    input write_en_sel_t write_en_sel,
+    input valid,
+    input dirty,
+    input lru_load,
+    input ram_addr_sel_t ram_addr_sel,
+    // RAM
+    input logic [s_line-1:0] ram_line_o,
+
+    // Outputs
+    // CPU
+    output logic [s_line-1:0] mem_rdata256,
+    // Controller
+    output logic hit,
+    output logic dirty0,
+    output logic dirty1,
+    output logic lru,
+    // RAM
+    output logic [s_line-1:0] ram_line_i,
+    output logic [s_mask-1:0] ram_address_i
 );
 
-rv32i_word mem_addr;
-assign mem_addr = mem_address;
-//assign pmem_address = {mem_address[31:5], 5'b00000};
+    // Internal Signals
+    logic valid0, valid1;
+    logic [s_tag-1:0] tag0;
+    logic [s_tag-1:0] tag1;
+    logic [s_line-1:0] block0;
+    logic [s_line-1:0] block1;
+    logic hit0, hit1;
 
-// logic [2:0] offset;
-// assign logic [2:0] offset = mem_address[4:2];
+    logic [31:0] write_en;
 
-//lru
-//logic load_lru, lru_in, lru_out;
+    logic block_sel;
 
-//tag
-//logic load_tag0, load_tag1;
-logic [23:0] tag0_out, tag1_out;
+    logic dirty_val0, dirty_val1;
+    logic valid_val0, valid_val1;
+    logic [s_mask-1:0] write_val0;
+    logic [s_mask-1:0] write_val1;
+    logic load_val0, load_val1;
 
-//line
-logic cache_read;
-//logic [31:0] write_en0, write_en1;
-logic [255:0] line0_in, line1_in, line0_out, line1_out;
+    logic [s_line-1:0] write_data;
 
-//valid
-//logic load_valid0, load_valid1, valid_in, valid0_out, valid1_out;
+    logic read;
 
-//cmp
-//logic tag0_hit, tag1_hit;
+    logic [s_index-1:0] index;
+    logic [s_tag-1:0] tag;
 
-//dirty
-//logic load_dirty0, load_dirty1, dirty_in, dirty0_out, dirty1_out;
+    logic latest_block;
+    logic lru_val;
 
-array #(3, 1) lru (
-    .*, 
-    .read (1'b1),
-    .load (load_lru),
-    .rindex (mem_address[7:5]),
-    .windex (mem_address[7:5]),
-    .datain (lru_in),
-    .dataout (lru_out)
-);
+    //------------------ Array Module Instantiations ------------------//
+    array LRU (
+        .clk(clk),
+        .rst(rst),
+        .read(read),
+        .load(lru_load),
+        .rindex(index),
+        .windex(index),
+        .datain(lru_val),
+        .dataout(lru)
+    );
+    // Way-0
+    array VALID0 (
+        .clk(clk),
+        .rst(rst),
+        .read(read),
+        .load(load_val0),
+        .rindex(index),
+        .windex(index),
+        .datain(valid_val0),
+        .dataout(valid0)
+    );
+    array DIRTY0 (
+        .clk(clk),
+        .rst(rst),
+        .read(read),
+        .load(load_val0),
+        .rindex(index),
+        .windex(index),
+        .datain(dirty_val0),
+        .dataout(dirty0)
+    );
+    array #(.width(s_tag)) TAG0 (
+        .clk(clk),
+        .rst(rst),
+        .read(read),
+        .load(load_val0),
+        .rindex(index),
+        .windex(index),
+        .datain(tag),
+        .dataout(tag0)
+    );
+    data_array DATA0 (
+        .clk(clk),
+        .rst(rst),
+        .read(read),
+        .write_en(write_val0),
+        .rindex(index),
+        .windex(index),
+        .datain(write_data),
+        .dataout(block0)
+    );
+    // Way-1
+    array VALID1 (
+        .clk(clk),
+        .rst(rst),
+        .read(read),
+        .load(load_val1),
+        .rindex(index),
+        .windex(index),
+        .datain(valid_val1),
+        .dataout(valid1)
+    );
+    array DIRTY1 (
+        .clk(clk),
+        .rst(rst),
+        .read(read),
+        .load(load_val1),
+        .rindex(index),
+        .windex(index),
+        .datain(dirty_val1),
+        .dataout(dirty1)
+    );
+    array #(.width(s_tag)) TAG1 (
+        .clk(clk),
+        .rst(rst),
+        .read(read),
+        .load(load_val1),
+        .rindex(index),
+        .windex(index),
+        .datain(tag),
+        .dataout(tag1)
+    );
+    data_array DATA1 (
+        .clk(clk),
+        .rst(rst),
+        .read(read),
+        .write_en(write_val1),
+        .rindex(index),
+        .windex(index),
+        .datain(write_data),
+        .dataout(block1)
+    );
+    /*
+    BRAM_1bit LRU (
+        .address(index),
+        .clock(clk),
+        .data(lru_val),
+        .rden(read),
+        .wren(lru_load),
+        .q(lru)
+    );
+    // Way-0
+    BRAM_1bit VALID0 (
+        .address(index),
+        .clock(clk),
+        .data(valid_val0),
+        .rden(read),
+        .wren(load_val0),
+        .q(valid0)
+    );
+    BRAM_1bit DIRTY0 (
+        .address(index),
+        .clock(clk),
+        .data(dirty_val0),
+        .rden(read),
+        .wren(load_val0),
+        .q(dirty0)
+    );
+    BRAM_24bit TAG0 (
+        .address(index),
+        .clock(clk),
+        .data(tag),
+        .rden(read),
+        .wren(load_val0),
+        .q(tag0)
+    );
+    BRAM_data_256bit DATA0 (
+        .address(index),
+        .byteena(write_val0),
+        .clock(clk),
+        .data(write_data),
+        .rden(read),
+        .wren(|write_val0),
+        .q(block0)
+    );
+    // Way-1
+    BRAM_1bit VALID1 (
+        .address(index),
+        .clock(clk),
+        .data(valid_val1),
+        .rden(read),
+        .wren(load_val1),
+        .q(valid1)
+    );
+    BRAM_1bit DIRTY1 (
+        .address(index),
+        .clock(clk),
+        .data(dirty_val1),
+        .rden(read),
+        .wren(load_val1),
+        .q(dirty1)
+    );
+    BRAM_24bit TAG1 (
+        .address(index),
+        .clock(clk),
+        .data(tag),
+        .rden(read),
+        .wren(load_val1),
+        .q(tag1)
+    );
+    BRAM_data_256bit DATA1 (
+        .address(index),
+        .byteena(write_val1),
+        .clock(clk),
+        .data(write_data),
+        .rden(read),
+        .wren(|write_val1),
+        .q(block1)
+    );
+    */
 
-array #(3, 24) tag0 (
-    .*,
-    .read (1'b1),
-    .load (load_tag0),
-    .rindex (mem_address[7:5]),
-    .windex (mem_address[7:5]),
-    .datain (mem_address[31:8]),
-    .dataout (tag0_out)
-);
-array #(3, 24) tag1 (
-    .*,
-    .read (1'b1),
-    .load (load_tag1),
-    .rindex (mem_address[7:5]),
-    .windex (mem_address[7:5]),
-    .datain (mem_address[31:8]),
-    .dataout (tag1_out)
-);
-data_array #(5, 3) line0 (
-    .*,
-    .read (1'b1),
-    .write_en (write_en0),
-    .rindex  (mem_address[7:5]),
-    .windex  (mem_address[7:5]),
-    .datain  (line0_in),
-    .dataout (line0_out)
-);
-data_array #(5, 3) line1 (
-    .*,
-    .read (1'b1),
-    .write_en (write_en1),
-    .rindex  (mem_address[7:5]),
-    .windex  (mem_address[7:5]),
-    .datain  (line1_in),
-    .dataout (line1_out)
-);
+    //------------------ Datapath Logic ------------------//
+    assign index = mem_address[s_offset +: s_index];
+    assign tag = mem_address[s_offset+s_index +: s_tag];
 
-array #(3, 1) valid0 (
-    .*, 
-    .read (1'b1),
-    .load (load_valid0),
-    .rindex (mem_address[7:5]),
-    .windex (mem_address[7:5]),
-    .datain (valid_in),
-    .dataout (valid0_out)
-);
-array #(3, 1) valid1 (
-    .*, 
-    .read (1'b1),
-    .load (load_valid1),
-    .rindex (mem_address[7:5]),
-    .windex (mem_address[7:5]),
-    .datain (valid_in),
-    .dataout (valid1_out)
-);
+    assign read = mem_read | mem_write;
 
-array #(3, 1) dirty0 (
-    .*, 
-    .read (1'b1),
-    .load (load_dirty0),
-    .rindex (mem_address[7:5]),
-    .windex (mem_address[7:5]),
-    .datain (dirty_in),
-    .dataout (dirty0_out)
-);
-array #(3, 1) dirty1 (
-    .*, 
-    .read (1'b1),
-    .load (load_dirty1),
-    .rindex (mem_address[7:5]),
-    .windex (mem_address[7:5]),
-    .datain (dirty_in),
-    .dataout (dirty1_out)
-);
+    assign hit0 = valid0 & (tag == tag0);
+    assign hit1 = valid1 & (tag == tag1);
+    assign hit = hit0 | hit1;
 
-cache_cmp cmp (
-    .*,
-    .tag_in (mem_address[31:8])
-);
-
-always_comb
-    begin
-        unique case (datamux_sel)
-            1'b0: mem_rdata256 = line0_out;
-            1'b1: mem_rdata256 = line1_out;
-
-            // etc.
-            default: mem_rdata256 = line0_out;
-        endcase
-        unique case (line0_in_sel)
-            1'b0: line0_in = pmem_rdata;
-            1'b1: begin
-                line0_in = line0_out;
-                for (int i = 0; i < 4; i++) begin
-                    if (mem_byte_enable[i])
-                        line0_in[8*({mem_address[4:2], 2'b00} + i) +: 8] = mem_wdata[8*i +: 8];
-                end
-            end
-
-            // etc.
-            default: line0_in = pmem_rdata;
-        endcase
-        unique case (line1_in_sel)
-            1'b0: line1_in = pmem_rdata;
-            1'b1: begin
-                line1_in = line1_out;
-                for (int i = 0; i < 4; i++) begin
-                    if (mem_byte_enable[i])
-                        line1_in[8*({mem_address[4:2], 2'b00} + i) +: 8] = mem_wdata[8*i +: 8];
-                end
-            end
-
-            // etc.
-            default: line1_in = pmem_rdata;
-        endcase
-        unique case (lru_out)
-            1'b0: pmem_wdata = line0_out;
-            1'b1: pmem_wdata = line1_out;
-
-            // etc.
-            default: pmem_wdata = line0_out;
-        endcase
-        unique case (addr_sel)
-            1'b0: pmem_address = {mem_address[31:5], 5'b00000};
-            1'b1: begin
-                if (lru_out)
-                    pmem_address = {tag1_out, mem_address[7:5], 5'b00000};
-                else
-                    pmem_address = {tag0_out, mem_address[7:5], 5'b00000};
-            end
-            default: pmem_address = {mem_address[31:5], 5'b00000};
+    always_comb begin : HIT_SELECT
+        case ({hit1, hit0})
+            2'b00: latest_block = 0;
+            2'b01: latest_block = 0;
+            2'b10: latest_block = 1;
+            2'b11: latest_block = 'x;
         endcase
     end
 
+    assign lru_val = ~latest_block;
+
+    //------------------ Muxes and Demux ------------------//
+    always_comb begin : WRITE_ENABLE_SELECT
+        case (write_en_sel)
+            ALL_DIS: write_en = '0;
+            ALL_EN:  write_en = '1;
+            CPU_EN:  write_en = mem_byte_enable256;
+        endcase
+    end
+
+    always_comb begin : DEMUXES
+        case (block_sel)
+            0: begin
+                dirty_val0 = dirty;
+                dirty_val1 = 0;
+                valid_val0 = valid;
+                valid_val1 = 0;
+                write_val0 = write_en;
+                write_val1 = '0;
+                load_val0  = load;
+                load_val1  = 0;
+            end
+            1: begin
+                dirty_val0 = 0;
+                dirty_val1 = dirty;
+                valid_val0 = 0;
+                valid_val1 = valid;
+                write_val0 = '0;
+                write_val1 = write_en;
+                load_val0  = 0;
+                load_val1  = load;
+            end
+            default: begin
+                dirty_val0 = 'x;
+                dirty_val1 = 'x;
+                valid_val0 = 'x;
+                valid_val1 = 'x;
+                write_val0 = 'x;
+                write_val1 = 'x;
+                load_val0  = 'x;
+                load_val1  = 'x;
+            end
+        endcase
+    end
+
+    always_comb begin : WRITE_DATA_SELECT
+        case (write_data_sel)
+            CPU_DATA: write_data = mem_wdata256;
+            RAM_DATA: write_data = ram_line_o;
+        endcase
+    end
+
+    always_comb begin : RAM_ADDR_SELECT
+        case (ram_addr_sel)
+            CPU_ADDR:    ram_address_i = {mem_address[31:5], 5'b0};
+            TAG_ADDR: begin
+                if (lru) ram_address_i = {tag1, index, 5'b0};
+                else     ram_address_i = {tag0, index, 5'b0};
+            end
+        endcase
+    end
+
+    always_comb begin : READ_BLOCK_SELECT
+        if (latest_block) mem_rdata256 = block1;
+        else              mem_rdata256 = block0;
+    end
+
+    always_comb begin : DATA_BLOCK_SELECT
+        if (lru) ram_line_i = block1;
+        else     ram_line_i = block0;
+    end
+
+    always_comb begin : BLOCK_SELECT
+        if (hit) block_sel = latest_block;
+        else     block_sel = lru;
+    end
 
 endmodule : cache_datapath
-
-module cache_cmp
-(
-    input logic [23:0] tag_in,
-    input logic [23:0] tag0_out,
-    input logic [23:0] tag1_out,
-    output logic tag0_hit,
-    output logic tag1_hit
-);
-
-    always_comb
-    begin
-        if (tag_in == tag0_out)
-            tag0_hit = 1'b1;
-        else
-            tag0_hit = 1'b0;
-        if (tag_in == tag1_out)
-            tag1_hit = 1'b1;
-        else
-            tag1_hit = 1'b0;
-    end
-endmodule : cache_cmp

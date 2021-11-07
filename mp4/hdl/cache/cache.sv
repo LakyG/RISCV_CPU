@@ -1,73 +1,81 @@
 /* MODIFY. Your cache design. It contains the cache
 controller, cache datapath, and bus adapter. */
+
+import cache_types::*;
 import rv32i_types::*;
 
 module cache #(
     parameter s_offset = 5,
     parameter s_index  = 3,
-    parameter s_tag    = 32 - s_offset - s_index,
-    parameter s_mask   = 2**s_offset,
-    parameter s_line   = 8*s_mask,
-    parameter num_sets = 2**s_index
+    parameter s_tag    = 32 - s_offset - s_index, //24
+    parameter s_mask   = 2**s_offset, //32
+    parameter s_line   = 8*s_mask, //256
+    parameter num_sets = 2**s_index //8
 )
 (
     input clk,
     input rst,
-    input rv32i_word mem_address,
-    input rv32i_word mem_wdata,
+
+    // From CPU
     input logic mem_read,
     input logic mem_write,
-    input logic [255:0] pmem_rdata,
-    input pmem_resp,
     input logic [3:0] mem_byte_enable,
-    output rv32i_word pmem_address,
-    output logic pmem_read,
-    output logic pmem_write,
+    input rv32i_word mem_address,
+    input rv32i_word mem_wdata,
+    // To CPU
     output logic mem_resp,
     output rv32i_word mem_rdata,
-    output logic [255:0] pmem_wdata
+
+    // FROM RAM
+    input logic [255:0] line_o,
+    input logic resp_o,
+    // TO RAM
+    output logic [255:0] line_i,
+    output logic [31:0] address_i,
+    output logic read_i,
+    output logic write_i
 );
 
-logic tag0_hit;
-logic tag1_hit;
-logic valid0_out;
-logic valid1_out;
- logic lru_out;
- logic datamux_sel;
- logic load_lru;
- logic lru_in;
- logic [31:0] write_en0;
- logic [31:0] write_en1;
-  logic load_tag0;
- logic load_tag1;
- logic load_valid0;
- logic load_valid1;
- logic valid_in;
-logic [255:0] mem_wdata256;
-logic [255:0] mem_rdata256;
-logic [31:0] mem_byte_enable256;
+// Datapath to Control
+logic hit;
+logic dirty0, dirty1;
+logic lru;
 
-logic dirty0_out;
-logic dirty1_out;
- logic load_dirty0;
- logic load_dirty1;
- logic dirty_in;
- logic line0_in_sel;
- logic line1_in_sel;
-logic addr_sel;
+// Control to Datapath
+write_data_sel_t write_data_sel;
+logic load;
+write_en_sel_t write_en_sel;
+logic valid;
+logic dirty;
+logic lru_load;
+ram_addr_sel_t ram_addr_sel;
 
-cache_control control
-(
-    .*
+// Bus Adapter to Datapath
+logic [s_line-1:0] mem_wdata256;
+logic [s_mask-1:0] mem_byte_enable256;
+
+// Datapath to Bus Adapter
+logic [s_line-1:0] mem_rdata256;
+
+cache_control control (
+    .*,
+    // Input from RAM
+    .ram_resp_o(resp_o),
+    // Output to RAM
+    .ram_read_i(read_i),
+    .ram_write_i(write_i)
 );
 
-cache_datapath datapath
-(
-    .*
+cache_datapath datapath (
+    .*,
+    // Input from RAM
+    .ram_line_o(line_o),
+    // Output to RAM
+    .ram_line_i(line_i),
+    .ram_address_i(address_i)
 );
 
-bus_adapter bus_adapter
-(
+bus_adapter bus_adapter (
     .*,
     .address(mem_address)
 );

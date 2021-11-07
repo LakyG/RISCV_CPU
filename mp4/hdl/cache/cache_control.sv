@@ -1,228 +1,143 @@
 /* MODIFY. The cache controller. It is a state machine
 that controls the behavior of the cache. */
 
+import cache_types::*;
+
 module cache_control (
-    input logic clk,
-    input logic rst,
-    input logic mem_read,
-    input logic mem_write,
-    input logic tag0_hit,
-    input logic tag1_hit,
-    input logic valid0_out,
-    input logic valid1_out,
-    input logic pmem_resp,
-    input logic lru_out,
-    input logic dirty0_out,
-    input logic dirty1_out,
-    output logic datamux_sel,
-    output logic load_lru,
-    output logic lru_in,
-    output logic pmem_read,
-    output logic pmem_write,
-    output logic [31:0] write_en0,
-    output logic [31:0] write_en1,
-    output logic load_tag0,
-    output logic load_tag1,
-    output logic load_valid0,
-    output logic load_valid1,
-    output logic valid_in,
+    input clk,
+    input rst,
+
+    // Inputs
+    // CPU
+    input mem_read,
+    input mem_write,
+    // Cache Datapath
+    input hit,
+    input dirty0, dirty1,
+    input lru,
+    // RAM
+    input ram_resp_o,
+
+    // Outputs
+    // CPU
     output logic mem_resp,
-    output logic load_dirty0,
-    output logic load_dirty1,
-    output logic dirty_in,
-    output logic line0_in_sel,
-    output logic line1_in_sel,
-    output logic addr_sel
+    // Cache Datapth
+    output write_data_sel_t write_data_sel,      //Select mem_wdata256 or ram_line_o
+    output logic load,
+    output write_en_sel_t write_en_sel,        //Select mem_byte_enable256 or '1
+    output logic valid,
+    output logic dirty,
+    output logic lru_load,
+    output ram_addr_sel_t ram_addr_sel,        //Select mem_address or writeback_address
+    // RAM
+    output logic ram_read_i,
+    output logic ram_write_i
 );
 
+// State Enum
+typedef enum logic[2:0] { IDLE, LOOKUP, WRITEBACK, FETCH, READWRITE
+} State;
 
-enum int unsigned {
-    /* List of states */
-    start, load1, load2, write1, write2
-} state, next_states;
+State state, next_state;
 
+always_ff @ (posedge clk, posedge rst) begin : FF_LOGIC
+    if (rst) state <= IDLE;
+    else     state <= next_state;
+end
 
-function void set_defaults();
-    datamux_sel = 1'b0;
-    load_lru = 1'b0;
-    lru_in = 1'b0;
-    pmem_read = 1'b0;
-    write_en0 = 32'b0;
-    write_en1 = 32'b0;
-    load_tag0 = 1'b0;
-    load_tag1 = 1'b0;
-    pmem_write = 1'b0;
-    load_valid0 = 1'b0;
-    load_valid1 = 1'b0;
-    valid_in = 1'b0;
-    mem_resp = 1'b0;
-    load_dirty0 = 1'b0;
-    load_dirty1 = 1'b0;
-    dirty_in = 1'b0;
-    line0_in_sel = 1'b0;
-    line1_in_sel = 1'b0;
-    addr_sel = 1'b0;
-endfunction
+always_comb begin : NEXT_STATE_LOGIC
+    next_state = state;
 
-always_comb
-begin : state_actions
-    /* Default output assignments */
-    set_defaults();
-    /* Actions for each state */
-    unique case (state)
-
-        start:;
-        load1: begin
-            if (tag0_hit & valid0_out) begin
-                mem_resp = 1'b1;
-                datamux_sel = 1'b0;
-                load_lru = 1'b1;
-                lru_in = 1'b1;
-
-            end
-            else if (tag1_hit & valid1_out) begin
-                mem_resp = 1'b1;
-                datamux_sel = 1'b1;
-                load_lru = 1'b1;
-                lru_in = 1'b0;
-            end
-
+    case (state)
+        IDLE: begin
+            if (mem_read | mem_write)                  next_state = LOOKUP;
         end
-        load2: begin
-            if (!pmem_resp)
-                pmem_read = 1'b1;
-            else begin
-                if (lru_out) begin
-                    write_en1 = {32{1'b1}};
-                    line1_in_sel = 1'b0;
-                    load_tag1 = 1'b1;
-                    load_valid1 = 1'b1;
-                    valid_in = 1'b1;
-                end
-                else begin
-                    write_en0 = {32{1'b1}};
-                    line0_in_sel = 1'b0;
-                    load_tag0 = 1'b1;
-                    load_valid0 = 1'b1;
-                    valid_in = 1'b1;
-                end
-            end
-
+        LOOKUP: begin
+            if (hit)                                   next_state = IDLE;
+            else if ((~lru & dirty0) | (lru & dirty1)) next_state = WRITEBACK;
+            else                                       next_state = FETCH;
         end
-        //temp
-
-        write1: begin
-            // if (!pmem_resp)
-            //     pmem_write = 1'b1;
-            // else
-            //     mem_resp = 1'b1;
-            if (tag0_hit & valid0_out) begin
-                mem_resp = 1'b1;
-                load_lru = 1'b1;
-                lru_in = 1'b1;
-                load_dirty0 = 1'b1;
-                dirty_in = 1'b1;
-                line0_in_sel = 1'b1;
-                write_en0 = {32{1'b1}};
-            end
-            else if (tag1_hit & valid1_out) begin
-                mem_resp = 1'b1;
-                load_lru = 1'b1;
-                lru_in = 1'b0;
-                load_dirty1 = 1'b1;
-                dirty_in = 1'b1;
-                line1_in_sel = 1'b1;
-                write_en1 = {32{1'b1}};
-            end
-
-            
+        WRITEBACK: begin
+            if (ram_resp_o)                            next_state = FETCH;
         end
-        //temp
-        write2: begin
-            addr_sel = 1'b1;
-            if (!pmem_resp) 
-                pmem_write = 1'b1;
-            else begin
-                if (lru_out) begin
-                    load_dirty1 = 1'b1;
-                    dirty_in = 1'b0;
-                end
-                else begin
-                    load_dirty0 = 1'b1;
-                    dirty_in = 1'b0;
-                end
-            end
-
-
-
-            
+        FETCH: begin
+            if (ram_resp_o)                            next_state = READWRITE;
         end
-
+        READWRITE: begin
+            next_state = IDLE;
+        end
+        default: next_state = State'('x);
     endcase
 end
 
-always_comb
-begin : next_state_logic
-    /* Next state information and conditions (if any)
-     * for transitioning between states */
-    unique case (state)
+always_comb begin : OUTPUT_LOGIC
+    // Defaults
+    mem_resp       = 0;
+    load           = 0;
+    write_data_sel = write_data_sel_t'(0);
+    write_en_sel   = write_en_sel_t'(0);
+    valid          = 0;
+    dirty          = 0;
+    lru_load       = 0;
+    ram_addr_sel   = ram_addr_sel_t'(0);
+    ram_read_i     = 0;
+    ram_write_i    = 0;
 
-        start: begin
-            if (mem_read)
-                next_states = load1;
-            else if (mem_write)
-                next_states = write1;
-            else 
-                next_states = start;
+    case (state)
+        IDLE: begin
+            // Defaults
         end
-        load1: begin
-            if ((tag0_hit & valid0_out) | (tag1_hit & valid1_out))
-                next_states = start;
-            else if ((lru_out & dirty1_out) | ((~lru_out) & dirty0_out))
-                next_states = write2;
-            else
-                next_states = load2;
+        LOOKUP: begin
+            if (hit) begin
+                mem_resp = 1;
+                lru_load = 1;
+                
+                if (mem_write) begin
+                    load           = 1;
+                    write_data_sel = CPU_DATA;
+                    write_en_sel   = CPU_EN;
+                    valid          = 1;
+                    dirty          = 1;
+                end
+            end
         end
-        load2: begin
-            if (pmem_resp)
-                next_states = start;
-            else
-                next_states = load2;
+        WRITEBACK: begin
+            ram_addr_sel = TAG_ADDR;
+            ram_write_i  = 1;
         end
-        //temp
-        write1: begin
-            // if (pmem_resp)
-            //     next_states = start;
-            // else
-            //     next_states = write1;
-            if ((tag0_hit & valid0_out) | (tag1_hit & valid1_out))
-                next_states = start;
-            else if ((lru_out & dirty1_out) | ((~lru_out) & dirty0_out))
-                next_states = write2;
-            else
-                next_states = load2;
+        FETCH: begin
+            load           = 1;
+            write_data_sel = RAM_DATA;
+            write_en_sel   = ALL_EN;
+            valid          = 1;
+            ram_read_i     = 1;
         end
-        //temp
-        write2: begin
-            if (pmem_resp)
-                next_states = start;
-            else
-                next_states = write2;
-        end
+        READWRITE: begin
+            // TODO: HIT signal should be high here! (Check to make sure on waveforms and add assertion in TB)
+            mem_resp = 1;
+            lru_load = 1;
 
-        default: next_states = start;
+            if (mem_write) begin
+                load           = 1;
+                write_data_sel = CPU_DATA;
+                write_en_sel   = CPU_EN;
+                valid          = 1;
+                dirty          = 1;
+            end
+        end
+        default: begin
+            mem_resp       = 'x;
+            load           = 'x;
+            write_data_sel = write_data_sel_t'('x);
+            write_en_sel   = write_en_sel_t'('x);
+            valid          = 'x;
+            dirty          = 'x;
+            lru_load       = 'x;
+            ram_addr_sel   = ram_addr_sel_t'('x);
+            ram_read_i     = 'x;
+            ram_write_i    = 'x;
+        end
     endcase
-end
-
-always_ff @(posedge clk)
-begin: next_state_assignment
-    /* Assignment of next state on clock edge */
-    if (rst) begin
-        state <= start;
-    end
-    else begin
-        state <= next_states;
-    end
 end
 
 endmodule : cache_control
