@@ -70,6 +70,8 @@ pipeline_registers_if MEMWB_if();
 
 //regfile
 rv32i_word regfilemux_out;
+rv32i_word rm_out;
+assign rm_out = regfilemux_out;
 //pc
 rv32i_word pc;
 logic load_pc;
@@ -81,6 +83,11 @@ rv32i_word forwardingmux1_out;
 rv32i_word forwardingmux2_out;
 forwardingmux_t forwardingmux1_sel;
 forwardingmux_t forwardingmux2_sel;
+rv32i_word forwardingmux1;
+rv32i_word forwardingmux2;
+assign forwardingmux1 = forwardingmux1_out;
+assign forwardingmux2 = forwardingmux2_out;
+
 //cmp
 rv32i_word cmpmux_out;
 logic br_en;
@@ -157,6 +164,13 @@ IFID_reg IFID(.*);
 IDEX_reg IDEX(.*);
 EXMEM_reg EXMEM(.*);
 MEMWB_reg MEMWB(.*);
+//assign test = IDEX_if.control_word.alumux1_sel;
+// if (IDEX_if.control_word.alumux1_sel == alumux::rs1_out)
+//     assign test = forwardingmux1_out;
+// else
+//     assign test = 32'b1;
+                            
+
 
 pc_register PC(
     .*,
@@ -187,13 +201,13 @@ regfile regfile(
 
 alu ALU(
     .aluop (IDEX_if.control_word.aluop),
-    .a (forwardingmux1_out),
-    .b (forwardingmux2_out),
+    .a (alumux1_out),
+    .b (alumux2_out),
     .f (alu_out)
 );
 
 cmp CMP(
-    .rs1_out (IDEX_if.rs1_out),
+    .rs1_out (forwardingmux1_out),
     .cmpmux_out,
     .cmpop (IDEX_if.control_word.cmpop),
     .br_en (EXMEM_if.br_en_in)
@@ -303,12 +317,15 @@ always_comb begin : MUXES
     endcase
 
     unique case (IDEX_if.control_word.alumux1_sel)
-        alumux::rs1_out: alumux1_out = IDEX_if.rs1_out;
+        alumux::rs1_out: alumux1_out = forwardingmux1;
         alumux::pc_out: alumux1_out = IDEX_if.pc;
 
         // etc.
         default: `BAD_MUX_SEL;
     endcase
+    
+    
+
 
     unique case (IDEX_if.control_word.alumux2_sel)
         alumux::i_imm: alumux2_out = IDEX_if.i_imm;
@@ -316,7 +333,7 @@ always_comb begin : MUXES
         alumux::b_imm: alumux2_out = IDEX_if.b_imm;
         alumux::s_imm: alumux2_out = IDEX_if.s_imm;
         alumux::j_imm: alumux2_out = IDEX_if.j_imm;
-        alumux::rs2_out: alumux2_out = IDEX_if.rs2_out;
+        alumux::rs2_out: alumux2_out = forwardingmux2;
 
         // etc.
         default: `BAD_MUX_SEL;
@@ -324,17 +341,18 @@ always_comb begin : MUXES
 
     // Forwarding Unit Mux 1
     unique case (forwardingmux1_sel)
-        datapath_mux_types::alumux_out:     forwardingmux1_out = alumux1_out;
+        datapath_mux_types::alumux_out:     forwardingmux1_out = IDEX_if.rs1_out;
         datapath_mux_types::mem_alu_out:    forwardingmux1_out = EXMEM_if.alu_out;
-        datapath_mux_types::wb_regfile_mux: forwardingmux1_out = regfilemux_out;
+        datapath_mux_types::wb_regfile_mux: forwardingmux1_out = rm_out;
     endcase
 
     // Forwarding Unit Mux 2
     unique case (forwardingmux2_sel)
-        datapath_mux_types::alumux_out:     forwardingmux2_out = alumux2_out;
+        datapath_mux_types::alumux_out:     forwardingmux2_out = IDEX_if.rs2_out;
         datapath_mux_types::mem_alu_out:    forwardingmux2_out = EXMEM_if.alu_out;
-        datapath_mux_types::wb_regfile_mux: forwardingmux2_out = regfilemux_out;
+        datapath_mux_types::wb_regfile_mux: forwardingmux2_out = rm_out;
     endcase
+    
 
     // unique case (marmux_sel)
     //     marmux::pc_out: marmux_out = pc_out;
@@ -345,7 +363,7 @@ always_comb begin : MUXES
     // endcase
 
     unique case (IDEX_if.control_word.cmpmux_sel)
-        cmpmux::rs2_out: cmpmux_out = IDEX_if.rs2_out;
+        cmpmux::rs2_out: cmpmux_out = forwardingmux2;
         cmpmux::i_imm: cmpmux_out = IDEX_if.i_imm;
 
         // etc.

@@ -42,6 +42,8 @@ module IFID_reg (
             ir_in = 32'h13;
 
         end
+        if (~IFID_if.en)
+            IR_load = 0;
     end
 
     ir IR (

@@ -98,6 +98,13 @@ module hazard_unit
             EXMEM_en = 1;
             MEMWB_en = 1;
         end
+        else if (~imem_resp && dmem_resp) begin
+            IFID_en  = 1;
+            IDEX_en  = 1;
+            EXMEM_en = 1;
+            MEMWB_en = 1;
+            IFID_flush = 1;
+        end
         else if (~imem_resp && ~dmem_request) begin
             IFID_en  = 1;
             IDEX_en  = 1;
