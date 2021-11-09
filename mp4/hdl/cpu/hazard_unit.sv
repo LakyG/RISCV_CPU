@@ -22,7 +22,7 @@ module hazard_unit
 
     // PC Control
     output logic pc_en,
-    output pcmux_sel_t pcmux_sel
+    output pcmux_sel_t pcmux_sel,
     
     // Pipeline Register Control
     output logic IFID_en,
@@ -77,12 +77,14 @@ module hazard_unit
         endcase
     end
 
-    //Pipeline Register Enable
+    //Pipeline Register Enable and Flush
     always_comb begin
         IFID_en  = 0;
         IDEX_en  = 0;
         EXMEM_en = 0;
         MEMWB_en = 0;
+        IFID_flush = 0;
+        IDEX_flush = 0;
 
         if (imem_resp && dmem_resp) begin
             IFID_en  = 1;
@@ -97,20 +99,12 @@ module hazard_unit
             MEMWB_en = 1;
         end
         else if (~imem_resp && ~dmem_request) begin
+            IFID_en  = 1;
             IDEX_en  = 1;
             EXMEM_en = 1;
             MEMWB_en = 1;
+            IFID_flush = 1;
         end
-
-        if (load_use_hazard) begin
-            IFID_en = 0;
-        end
-    end
-
-    // Pipeline Register Flush
-    always_comb begin
-        IFID_flush = 0;
-        IDEX_flush = 0;
 
         // Check for Branch Misprediction (MP3-CP2 is static branch prediction)
         if (br_j_flush) begin
@@ -122,6 +116,9 @@ module hazard_unit
         if (load_use_hazard) begin
             IDEX_flush = 1;
         end
-    end
 
+        if (load_use_hazard) begin
+            IFID_en = 0;
+        end
+    end
 endmodule : hazard_unit

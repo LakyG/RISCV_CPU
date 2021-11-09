@@ -93,7 +93,6 @@ assign IFID_if.pc_in = pc;
 assign IFID_if.pc_plus4_in = pc + 4;
 assign IFID_if.imem_rdata_in = imem_rdata;
 assign imem_address = pc;
-assign IFID_if.en = 1'b1;
 
 //IDEX_if
 assign IDEX_if.pc_in = IFID_if.pc;
@@ -106,7 +105,6 @@ assign IDEX_if.j_imm_in = IFID_if.j_imm;
 assign IDEX_if.rd_in = IFID_if.rd;
 assign IDEX_if.rs1_in = IFID_if.rs1;
 assign IDEX_if.rs2_in = IFID_if.rs2;
-assign IDEX_if.en = 1'b1;
 
 //EXMEM_if
 assign EXMEM_if.pc_in = IDEX_if.pc;
@@ -118,7 +116,6 @@ assign EXMEM_if.rs2_in = IDEX_if.rs2;
 assign EXMEM_if.rd_in = IDEX_if.rd;
 assign EXMEM_if.rs2_out_in = IDEX_if.rs2_out;
 assign EXMEM_if.alu_out_in = alu_out;
-assign EXMEM_if.en = 1'b1;
 
 assign dmem_read = EXMEM_if.control_word.dmem_read;
 assign dmem_write = EXMEM_if.control_word.dmem_write;
@@ -136,9 +133,6 @@ assign MEMWB_if.rd_in = EXMEM_if.rd;
 assign MEMWB_if.br_en_in = EXMEM_if.br_en;
 assign MEMWB_if.alu_out_in = EXMEM_if.alu_out;
 assign MEMWB_if.dmem_rdata_in = dmem_rdata;
-assign MEMWB_if.en = 1'b1;
-
-
 
 /***************************** Registers *************************************/
 // Keep Instruction register named `IR` for RVFI Monitor
@@ -171,15 +165,12 @@ pc_register PC(
     .out (pc)
 );
 
-
-
 control control(
     .opcode (IFID_if.opcode),
     .funct3 (IFID_if.funct3),
     .funct7 (IFID_if.funct7),
     .ctrl (IDEX_if.control_word_in)
 );
-
 
 regfile regfile(
     .*,
@@ -196,28 +187,10 @@ regfile regfile(
 
 alu ALU(
     .aluop (IDEX_if.control_word.aluop),
-    .a (alumux1_out),
-    .b (alumux2_out),
+    .a (forwardingmux1_out),
+    .b (forwardingmux2_out),
     .f (alu_out)
 );
-
-
-
-// register MAR(
-//     .clk  (clk),
-//     .rst (rst),
-//     .load (load_mar),
-//     .in   (marmux_out),
-//     .out  (mar_out)
-// );
-
-// register mem_data_out(
-//     .clk  (clk),
-//     .rst (rst),
-//     .load (load_data_out),
-//     .in   (rs2_out),
-//     .out  (data_out)
-// );
 
 cmp CMP(
     .rs1_out (IDEX_if.rs1_out),
@@ -234,8 +207,8 @@ hazard_unit hazard(
     .br_en(EXMEM_if.br_en_in),
     .opcode(IDEX_if.control_word.opcode),
     .pcmux_sel(pcmux_sel),
-    .dmem_read_mem(EXMEM_if.dmem_read),
-    .dmem_write_mem(EXMEM_if.dmem_write),
+    .dmem_read_mem(EXMEM_if.control_word.dmem_read),
+    .dmem_write_mem(EXMEM_if.control_word.dmem_write),
 
     .rd_ex(IDEX_if.rd),
     .pc_en(load_pc),
@@ -261,7 +234,6 @@ forwarding_unit forwarding(
     .MEMWB_rd(MEMWB_if.rd),
     .MEMWB_load_reg(MEMWB_if.control_word.load_regfile)
 );
-
 /*****************************************************************************/
 
 /******************************** Muxes **************************************/

@@ -19,7 +19,7 @@ module IFID_reg (
         //Defaults
         IR_load = 1;
         
-        IFIC_if.funct3 = funct3;
+        IFID_if.funct3 = funct3;
         IFID_if.opcode = opcode;
         IFID_if.i_imm = i_imm;
         IFID_if.rs1 = rs1;
@@ -30,7 +30,7 @@ module IFID_reg (
             IR_load = 0;
 
             // Set to a NOP --> ADDI x0, x0, 0
-            IFIC_if.funct3 = rv32i_types::alu_add;
+            IFID_if.funct3 = rv32i_types::alu_add;
             IFID_if.opcode = rv32i_types::op_imm;
             IFID_if.i_imm = '0;
             IFID_if.rs1 = '0;

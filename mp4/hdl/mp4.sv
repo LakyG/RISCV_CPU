@@ -45,25 +45,45 @@ logic [255:0] i_pmem_wdata;
 logic [255:0] i_pmem_rdata;
 logic [3:0] imem_byte_enable;
 logic i_pmem_resp;
+
 cache icache (
     .*,
-    .mem_address(imem_address),
-    .mem_wdata('0),
+    // .mem_address(imem_address),
+    // .mem_wdata('0),
+    // .mem_read(imem_read),
+    // .mem_write('0),
+    // .pmem_rdata(i_pmem_rdata),
+    // .pmem_resp(i_pmem_resp),
+    // .mem_byte_enable('0),
+    // .pmem_address(i_pmem_address),
+    // .pmem_read(i_pmem_read),
+    // .pmem_write('0),
+    // .mem_resp(imem_resp),
+    // .mem_rdata(imem_rdata),
+    // .pmem_wdata('0)
+
+    // From CPU
     .mem_read(imem_read),
     .mem_write('0),
-    .pmem_rdata(i_pmem_rdata),
-    .pmem_resp(i_pmem_resp),
     .mem_byte_enable('0),
-    .pmem_address(i_pmem_address),
-    .pmem_read(i_pmem_read),
-    .pmem_write('0),
+    .mem_address(imem_address),
+    .mem_wdata('0),
+    // To CPU
     .mem_resp(imem_resp),
     .mem_rdata(imem_rdata),
-    .pmem_wdata('0)
-
+    // FROM RAM
+    .line_o(i_pmem_rdata),
+    .resp_o(i_pmem_resp),
+    // TO RAM
+    .line_i(),
+    .address_i(i_pmem_address),
+    .read_i(i_pmem_read),
+    .write_i()
 );
+
 //dcache
 logic dmem_read;
+logic dmem_write;
 logic [31:0] dmem_address;
 logic dmem_resp;
 logic [31:0] dmem_rdata;
@@ -75,22 +95,40 @@ logic [255:0] d_pmem_wdata;
 logic [255:0] d_pmem_rdata;
 logic [3:0] dmem_byte_enable;
 logic d_pmem_resp;
+
 cache dcache (
     .*,
-    .mem_address(dmem_address),
-    .mem_wdata(dmem_wdata),
+    // .mem_address(dmem_address),
+    // .mem_wdata(dmem_wdata),
+    // .mem_read(dmem_read),
+    // .mem_write(dmem_write),
+    // .pmem_rdata(d_pmem_rdata),
+    // .pmem_resp(d_pmem_resp),
+    // .mem_byte_enable(dmem_byte_enable),
+    // .pmem_address(d_pmem_address),
+    // .pmem_read(d_pmem_read),
+    // .pmem_write(d_pmem_write),
+    // .mem_resp(dmem_resp),
+    // .mem_rdata(dmem_rdata),
+    // .pmem_wdata(d_pmem_wdata)
+
+    // From CPU
     .mem_read(dmem_read),
     .mem_write(dmem_write),
-    .pmem_rdata(d_pmem_rdata),
-    .pmem_resp(d_pmem_resp),
     .mem_byte_enable(dmem_byte_enable),
-    .pmem_address(d_pmem_address),
-    .pmem_read(d_pmem_read),
-    .pmem_write(d_pmem_write),
+    .mem_address(dmem_address),
+    .mem_wdata(dmem_wdata),
+    // To CPU
     .mem_resp(dmem_resp),
     .mem_rdata(dmem_rdata),
-    .pmem_wdata(d_pmem_wdata)
-
+    // FROM RAM
+    .line_o(d_pmem_rdata),
+    .resp_o(d_pmem_resp),
+    // TO RAM
+    .line_i(d_pmem_wdata),
+    .address_i(d_pmem_address),
+    .read_i(d_pmem_read),
+    .write_i(d_pmem_write)
 );
 
 logic [255:0] pmem_wdata_c;
