@@ -45,22 +45,21 @@ logic [255:0] i_pmem_wdata;
 logic [255:0] i_pmem_rdata;
 logic [3:0] imem_byte_enable;
 logic i_pmem_resp;
-//TODO: After implementing the caches, adapters and the arbiter, add them here
 cache icache (
     .*,
     .mem_address(imem_address),
-    .mem_wdata(imem_wdata),
+    .mem_wdata('0),
     .mem_read(imem_read),
-    .mem_write(imem_write),
+    .mem_write('0),
     .pmem_rdata(i_pmem_rdata),
     .pmem_resp(i_pmem_resp),
-    .mem_byte_enable(imem_byte_enable),
+    .mem_byte_enable('0),
     .pmem_address(i_pmem_address),
     .pmem_read(i_pmem_read),
-    .pmem_write(i_pmem_write),
+    .pmem_write('0),
     .mem_resp(imem_resp),
     .mem_rdata(imem_rdata),
-    .pmem_wdata(i_pmem_wdata)
+    .pmem_wdata('0)
 
 );
 //dcache
@@ -76,7 +75,6 @@ logic [255:0] d_pmem_wdata;
 logic [255:0] d_pmem_rdata;
 logic [3:0] dmem_byte_enable;
 logic d_pmem_resp;
-//TODO: After implementing the caches, adapters and the arbiter, add them here
 cache dcache (
     .*,
     .mem_address(dmem_address),

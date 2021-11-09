@@ -24,21 +24,21 @@ module IDEX_reg (
             IDEX_if.rs1_out         <= '0;
             IDEX_if.rs2_out         <= '0;
         end
-        // else if (IDEX_if.en && IDEX_if.flush) begin
-        //     IDEX_if.pc              <= '0;
-        //     IDEX_if.pc_plus4        <= '0;
-        //     IDEX_if.i_imm           <= '0;
-        //     IDEX_if.s_imm           <= '0;
-        //     IDEX_if.b_imm           <= '0;
-        //     IDEX_if.u_imm           <= '0;
-        //     IDEX_if.j_imm           <= '0;
-        //     IDEX_if.rs1             <= '0;
-        //     IDEX_if.rs2             <= '0;
-        //     IDEX_if.rd              <= '0;
-        //     IDEX_if.control_word    <= '0;
-        //     IDEX_if.rs1_out         <= '0;
-        //     IDEX_if.rs2_out         <= '0;
-        // end
+        else if (IDEX_if.en && IDEX_if.flush) begin
+            IDEX_if.pc              <= '0;
+            IDEX_if.pc_plus4        <= '0;
+            IDEX_if.i_imm           <= '0;
+            IDEX_if.s_imm           <= '0;
+            IDEX_if.b_imm           <= '0;
+            IDEX_if.u_imm           <= '0;
+            IDEX_if.j_imm           <= '0;
+            IDEX_if.rs1             <= '0;
+            IDEX_if.rs2             <= '0;
+            IDEX_if.rd              <= '0;
+            IDEX_if.control_word    <= '0;
+            IDEX_if.rs1_out         <= '0;
+            IDEX_if.rs2_out         <= '0;
+        end
         else if (IDEX_if.en) begin
             IDEX_if.pc              <= IDEX_if.pc_in;
             IDEX_if.pc_plus4        <= IDEX_if.pc_plus4_in;

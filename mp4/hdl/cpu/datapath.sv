@@ -11,11 +11,13 @@ module datapath
     output logic dmem_read,
     output logic dmem_write,
     input rv32i_word dmem_rdata,
+    input logic dmem_resp,
     output rv32i_word dmem_wdata, // signal used by RVFI Monitor
 	output rv32i_word dmem_address,
     output logic [3:0] dmem_byte_enable,
 
     input rv32i_word imem_rdata,
+    input logic imem_resp,
     output rv32i_word imem_address
     /* You will need to connect more signals to your datapath module*/
     // input load_ir,
@@ -225,11 +227,24 @@ cmp CMP(
 );
 
 hazard_unit hazard(
+    .imem_resp(imem_resp),
+    .dmem_resp(dmem_resp),
+    .rs1_id(IFID_if.rs1),
+    .rs2_id(IFID_if.rs2),
     .br_en(EXMEM_if.br_en_in),
     .opcode(IDEX_if.control_word.opcode),
+    .pcmux_sel(pcmux_sel),
+    .dmem_read_mem(EXMEM_if.dmem_read),
+    .dmem_write_mem(EXMEM_if.dmem_write),
+
+    .rd_ex(IDEX_if.rd),
     .pc_en(load_pc),
-    .pcmux_sel(pcmux_sel)
-    
+    .IFID_en(IFID_if.en),
+    .IDEX_en(IDEX_if.en),
+    .EXMEM_en(EXMEM_if.en),
+    .MEMWB_en(MEMWB_if.en),
+    .IFID_flush(IFID_if.flush),
+    .IDEX_flush(IDEX_if.flush)
 );
 
 forwarding_unit forwarding(

@@ -71,11 +71,13 @@ datapath datapath(
     .dmem_read(dmem_read),
     .dmem_write(dmem_write),
     .dmem_rdata(dmem_rdata),
+    .dmem_resp(dmem_resp),
     .dmem_wdata(dmem_wdata),
 	.dmem_address(dmem_address),
     .dmem_byte_enable(dmem_byte_enable),
     
     .imem_rdata(imem_rdata),
+    .imem_resp(imem_resp),
     .imem_address(imem_address)
 );
 
