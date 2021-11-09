@@ -58,63 +58,72 @@ end
 /************************ Signals necessary for monitor **********************/
 // This section not required until CP2
 
-assign rvfi.commit = 0; // Set high when a valid instruction is modifying regfile or PC
-assign rvfi.halt = 0;   // Set high when you detect an infinite loop
-initial rvfi.order = 0;
+// TODO: Any additional signals that are added to the pipeline just for the RVFI monitor should be added as 'non-syntheziable' code
+// --> Use the "synth... translate_..." comment (see Lab 3 slides)
+// --> Try to keep any RVFI monitor signals as decoupled from our pipeline as possible. Use a separate struct for these signals.
+
+// TODO:  things might change here if we implement pipelined caches, branch prediction, etc.
+
+assign rvfi.commit = 0; // TODO: Set high when a valid instruction is modifying regfile or PC
+                                // --> This should be the WB stage??
+                                // --> When will data be valid?? Need to set rvfi.valid
+                                // --> We don't want flushed instructions to be valid
+                                // --> 
+assign rvfi.halt = 0;   // TODO: Set high when you detect an infinite loop
+initial rvfi.order = 0; //TODO:
 always @(posedge itf.clk iff rvfi.commit) rvfi.order <= rvfi.order + 1; // Modify for OoO
 
 /*
-The following signals need to be set:
-Instruction and trap:
+//The following signals need to be set:
+//Instruction and trap:
     rvfi.inst
-    rvfi.trap
+    rvfi.trap // Similar to MP2 (checking for invalid instructions i.e. when an instruction doesn't exist)
 
-Regfile:
+//Regfile:
     rvfi.rs1_addr
-    rvfi.rs2_add
+    rvfi.rs2_addr
     rvfi.rs1_rdata
     rvfi.rs2_rdata
     rvfi.load_regfile
     rvfi.rd_addr
     rvfi.rd_wdata
 
-PC:
+//PC:
     rvfi.pc_rdata
     rvfi.pc_wdata
 
-Memory:
+//Memory:
     rvfi.mem_addr
     rvfi.mem_rmask
     rvfi.mem_wmask
     rvfi.mem_rdata
     rvfi.mem_wdata
 
-Please refer to rvfi_itf.sv for more information.
+//Please refer to rvfi_itf.sv for more information.
 */
 
 /**************************** End RVFIMON signals ****************************/
 
 /********************* Assign Shadow Memory Signals Here *********************/
 // This section not required until CP2
-/*
-The following signals need to be set:
-icache signals:
-    itf.inst_read
-    itf.inst_addr
-    itf.inst_resp
-    itf.inst_rdata
 
-dcache signals:
-    itf.data_read
-    itf.data_write
-    itf.data_mbe
-    itf.data_addr
-    itf.data_wdata
-    itf.data_resp
-    itf.data_rdata
+//The following signals need to be set:
+//icache signals:
+    assign itf.inst_read = dut.imem_read;
+    assign itf.inst_addr = dut.imem_address;
+    assign itf.inst_resp = dut.imem_resp;
+    assign itf.inst_rdata = dut.imem_rdata;
 
-Please refer to tb_itf.sv for more information.
-*/
+//dcache signals:
+    assign itf.data_read = dut.dmem_read;
+    assign itf.data_write = dut.dmem_write;
+    assign itf.data_mbe = dut.dmem_byte_enable;
+    assign itf.data_addr = dut.dmem_address;
+    assign itf.data_wdata = dut.dmem_wdata;
+    assign itf.data_resp = dut.dmem_resp;
+    assign itf.data_rdata = dut.dmem_rdata;
+
+//Please refer to tb_itf.sv for more information.
 
 /*********************** End Shadow Memory Assignments ***********************/
 
@@ -144,18 +153,25 @@ mp4 dut(
     .clk(itf.clk),
     .rst(itf.rst),
 
-    .imem_read(itf.inst_read),
-    .imem_address(itf.inst_addr),
-    .imem_resp(itf.inst_resp),
-    .imem_rdata(itf.inst_rdata),
+    // .imem_read(itf.inst_read),
+    // .imem_address(itf.inst_addr),
+    // .imem_resp(itf.inst_resp),
+    // .imem_rdata(itf.inst_rdata),
 
-    .dmem_read(itf.data_read),
-    .dmem_write(itf.data_write),
-    .dmem_byte_enable(itf.data_mbe),
-    .dmem_address(itf.data_addr),
-    .dmem_wdata(itf.data_wdata),
-    .dmem_resp(itf.data_resp),
-    .dmem_rdata(itf.data_rdata)
+    // .dmem_read(itf.data_read),
+    // .dmem_write(itf.data_write),
+    // .dmem_byte_enable(itf.data_mbe),
+    // .dmem_address(itf.data_addr),
+    // .dmem_wdata(itf.data_wdata),
+    // .dmem_resp(itf.data_resp),
+    // .dmem_rdata(itf.data_rdata)
+
+    .pmem_resp(itf.mem_resp),
+    .pmem_rdata(itf.mem_rdata),
+    .pmem_read(itf.mem_read),
+    .pmem_write(itf.mem_write),
+    .pmem_address(itf.mem_addr),
+    .pmem_wdata(itf.mem_wdata)
 );
 /***************************** End Instantiation *****************************/
 

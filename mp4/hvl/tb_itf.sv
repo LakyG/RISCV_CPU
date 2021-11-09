@@ -72,11 +72,11 @@ interface tb_itf();
 
     /* Magic Memory */
     clocking mmcb @(negedge clk);
-        input read_a = inst_read, address_a = inst_addr, read_b = data_read,
-              write = data_write, wmask = data_mbe, address_b = data_addr,
-              wdata = data_wdata;
-        output resp_a = inst_resp, rdata_a = inst_rdata, resp_b = data_resp,
-               rdata_b = data_rdata;
+        // input read_a = inst_read, address_a = inst_addr, read_b = data_read,
+        //       write = data_write, wmask = data_mbe, address_b = data_addr,
+        //       wdata = data_wdata;
+        // output resp_a = inst_resp, rdata_a = inst_rdata, resp_b = data_resp,
+        //        rdata_b = data_rdata;
     endclocking
 
     modport mem(clocking mcb, ref path_mb);
