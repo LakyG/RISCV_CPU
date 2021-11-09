@@ -10,9 +10,10 @@ module IFID_reg (
 
     logic IR_load;
     logic [2:0] funct3;
-    rv32i_opcode opcode;
+    rv32i_types::rv32i_opcode opcode;
     logic [31:0] i_imm;
-    rv32i_reg rs1, rs2, rd;
+    rv32i_types::rv32i_reg rs1, rs2, rd;
+    logic [31:0] ir_in;
 
 
     always_comb begin
@@ -25,24 +26,28 @@ module IFID_reg (
         IFID_if.rs1 = rs1;
         IFID_if.rs2 = rs2;
         IFID_if.rd = rd;
+        ir_in = IFID_if.imem_rdata_in;
 
         if (IFID_if.en && IFID_if.flush) begin
-            IR_load = 0;
+            // IR_load = 0;
 
-            // Set to a NOP --> ADDI x0, x0, 0
-            IFID_if.funct3 = rv32i_types::alu_add;
-            IFID_if.opcode = rv32i_types::op_imm;
-            IFID_if.i_imm = '0;
-            IFID_if.rs1 = '0;
-            IFID_if.rs2 = '0;
-            IFID_if.rd = '0;
+            // // Set to a NOP --> ADDI x0, x0, 0
+            // IFID_if.funct3 = rv32i_types::alu_add;
+            // IFID_if.opcode = rv32i_types::op_imm;
+            // IFID_if.i_imm = '0;
+            // IFID_if.rs1 = '0;
+            // IFID_if.rs2 = '0;
+            // IFID_if.rd = '0;
+            IR_load = 1;
+            ir_in = 32'h13;
+
         end
     end
 
     ir IR (
         .*,
         .load(IR_load),
-        .in(IFID_if.imem_rdata_in),
+        .in(ir_in),
         
         .funct3(funct3),
         .funct7(IFID_if.funct7),

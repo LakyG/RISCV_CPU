@@ -62,7 +62,7 @@ module hazard_unit
         //     end 
         // end
 
-        if (IFID_en || br_j_flush) begin
+        if ((IFID_en & (~IFID_flush)) || br_j_flush) begin
             pc_en = 1;
         end
     end
