@@ -49,7 +49,13 @@ endfunction
 **/
 
 function void loadRegfile(regfilemux::regfilemux_sel_t sel);
-    ctrl.load_regfile = 1'b1;
+    if (sel != '0) begin
+        ctrl.load_regfile = 1'b1;
+    end
+    else begin
+        ctrl.load_regfile = 1'b0;
+    end
+
     ctrl.regfilemux_sel = sel;
 endfunction
 
