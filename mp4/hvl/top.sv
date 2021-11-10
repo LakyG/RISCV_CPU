@@ -64,43 +64,43 @@ end
 
 // TODO:  things might change here if we implement pipelined caches, branch prediction, etc.
 
-assign rvfi.commit = 0; // TODO: Set high when a valid instruction is modifying regfile or PC
-                                // --> This should be the WB stage??
-                                // --> When will data be valid?? Need to set rvfi.valid
-                                // --> We don't want flushed instructions to be valid
-                                // --> 
-assign rvfi.halt = 0;   // TODO: Set high when you detect an infinite loop
-initial rvfi.order = 0; //TODO:
-always @(posedge itf.clk iff rvfi.commit) rvfi.order <= rvfi.order + 1; // Modify for OoO
-
-/*
+assign rvfi.commit = commit;
+assign rvfi.halt = itf.halt;
+initial rvfi.order = 0;
+always @(posedge itf.clk iff rvfi.commit) rvfi.order <= rvfi.order + 1;
 //The following signals need to be set:
 //Instruction and trap:
-    rvfi.inst
-    rvfi.trap // Similar to MP2 (checking for invalid instructions i.e. when an instruction doesn't exist)
+    assign rvfi.inst = dut.cpu.datapath.MEMWB.MEMWB_if.imem_rdata;
+    //assign rvfi.trap //TODO: Similar to MP2 (checking for invalid instructions i.e. when an instruction doesn't exist)
 
 //Regfile:
-    rvfi.rs1_addr
-    rvfi.rs2_addr
-    rvfi.rs1_rdata
-    rvfi.rs2_rdata
-    rvfi.load_regfile
-    rvfi.rd_addr
-    rvfi.rd_wdata
+    assign rvfi.rs1_addr = dut.cpu.datapath.MEMWB.MEMWB_if.rs1;
+    assign rvfi.rs2_addr = dut.cpu.datapath.MEMWB.MEMWB_if.rs2;
+    assign rvfi.rs1_rdata = dut.cpu.datapath.MEMWB.MEMWB_if.rs1_out;
+    assign rvfi.rs2_rdata = dut.cpu.datapath.MEMWB.MEMWB_if.rs2_out;
+    assign rvfi.load_regfile = dut.cpu.datapath.MEMWB.MEMWB_if.control_word.load_regfile;
+    assign rvfi.rd_addr = dut.cpu.datapath.MEMWB.MEMWB_if.rd;
+    assign rvfi.rd_wdata = dut.cpu.datapath.regfilemux_out;
 
 //PC:
-    rvfi.pc_rdata
-    rvfi.pc_wdata
+    assign rvfi.pc_rdata = dut.cpu.datapath.MEMWB.MEMWB_if.pc;
+    assign rvfi.pc_wdata = dut.cpu.datapath.MEMWB.MEMWB_if.next_pc;
 
 //Memory:
-    rvfi.mem_addr
-    rvfi.mem_rmask
-    rvfi.mem_wmask
-    rvfi.mem_rdata
-    rvfi.mem_wdata
+    always_comb begin
+        if (dut.cpu.datapath.MEMWB.MEMWB_if.control_word.opcode == rv32i_types::op_store) begin
+            rvfi.mem_addr = dut.cpu.datapath.MEMWB.MEMWB_if.alu_out;
+        end
+        else begin
+            rvfi.mem_addr = '0;
+        end
+    end
+    assign rvfi.mem_rmask = '1;
+    assign rvfi.mem_wmask = dut.cpu.datapath.MEMWB.MEMWB_if.dmem_byte_enable;
+    assign rvfi.mem_rdata = dut.cpu.datapath.MEMWB.MEMWB_if.dmem_rdata;
+    assign rvfi.mem_wdata = dut.cpu.datapath.MEMWB.MEMWB_if.rs2_out;
 
 //Please refer to rvfi_itf.sv for more information.
-*/
 
 /**************************** End RVFIMON signals ****************************/
 

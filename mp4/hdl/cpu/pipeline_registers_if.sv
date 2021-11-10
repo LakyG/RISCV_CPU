@@ -15,10 +15,13 @@ interface pipeline_registers_if();
     // IF/ID
     rv32i_word pc_in;
     rv32i_word pc_plus4_in;
+    rv32i_word next_pc_in;
     rv32i_word imem_rdata_in;
 
     rv32i_word pc;
     rv32i_word pc_plus4;
+    rv32i_word next_pc;
+    rv32i_word imem_rdata;
     logic [2:0] funct3;
     logic [6:0] funct7;
     rv32i_opcode opcode;
@@ -57,8 +60,10 @@ interface pipeline_registers_if();
 
     // MEM/WB
     rv32i_word dmem_rdata_in;
+    logic [3:0] dmem_byte_enable_in;
 
     rv32i_word dmem_rdata;
+    logic [3:0] dmem_byte_enable;
 
     modport IFID (
         input en,
@@ -66,10 +71,13 @@ interface pipeline_registers_if();
 
         input pc_in,
         input pc_plus4_in,
+        input next_pc_in,
         input imem_rdata_in,
 
         output pc,
         output pc_plus4,
+        output next_pc,
+        output imem_rdata,
         output funct3,
         output funct7,
         output opcode,
@@ -89,6 +97,8 @@ interface pipeline_registers_if();
 
         input pc_in,
         input pc_plus4_in,
+        input next_pc_in,
+        input imem_rdata_in,
 
         input control_word_in,
         input i_imm_in,
@@ -104,6 +114,8 @@ interface pipeline_registers_if();
 
         output pc,
         output pc_plus4,
+        output next_pc,
+        output imem_rdata,
         output i_imm,
         output s_imm,
         output b_imm,
@@ -123,11 +135,14 @@ interface pipeline_registers_if();
 
         input pc_in,
         input pc_plus4_in,
+        input next_pc_in,
+        input imem_rdata_in,
         input control_word_in,
         input u_imm_in,
         input rs1_in,
         input rs2_in,
         input rd_in,
+        input rs1_out_in,
         input rs2_out_in,
 
         input br_en_in,
@@ -135,11 +150,14 @@ interface pipeline_registers_if();
 
         output pc,
         output pc_plus4,
+        output next_pc,
+        output imem_rdata,
         output control_word,
         output u_imm,
         output rs1,
         output rs2,
         output rd,
+        output rs1_out,
         output rs2_out,
 
         output br_en,
@@ -151,27 +169,37 @@ interface pipeline_registers_if();
 
         input pc_in,
         input pc_plus4_in,
+        input next_pc_in,
+        input imem_rdata_in,
         input control_word_in,
         input u_imm_in,
         input rs1_in,
         input rs2_in,
+        input rs1_out_in,
+        input rs2_out_in,
         input rd_in,
         input br_en_in,
         input alu_out_in,
 
         input dmem_rdata_in,
+        input dmem_byte_enable_in,
 
         output pc,
         output pc_plus4,
+        output next_pc,
+        output imem_rdata,
         output control_word,
         output u_imm,
         output rs1,
         output rs2,
+        output rs1_out,
+        output rs2_out,
         output rd,
         output br_en,
         output alu_out,
 
-        output dmem_rdata
+        output dmem_rdata,
+        output dmem_byte_enable
     );
     
 endinterface

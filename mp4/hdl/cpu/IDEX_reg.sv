@@ -12,6 +12,8 @@ module IDEX_reg (
         if (rst) begin
             IDEX_if.pc              <= '0;
             IDEX_if.pc_plus4        <= '0;
+            IDEX_if.next_pc         <= '0;
+            IDEX_if.imem_rdata      <= '0;
             IDEX_if.i_imm           <= '0;
             IDEX_if.s_imm           <= '0;
             IDEX_if.b_imm           <= '0;
@@ -27,6 +29,8 @@ module IDEX_reg (
         else if (IDEX_if.en && IDEX_if.flush) begin
             IDEX_if.pc              <= '0;
             IDEX_if.pc_plus4        <= '0;
+            IDEX_if.next_pc         <= '0;
+            IDEX_if.imem_rdata      <= '0;
             IDEX_if.i_imm           <= '0;
             IDEX_if.s_imm           <= '0;
             IDEX_if.b_imm           <= '0;
@@ -42,6 +46,8 @@ module IDEX_reg (
         else if (IDEX_if.en) begin
             IDEX_if.pc              <= IDEX_if.pc_in;
             IDEX_if.pc_plus4        <= IDEX_if.pc_plus4_in;
+            IDEX_if.next_pc         <= IDEX_if.next_pc_in;
+            IDEX_if.imem_rdata      <= IDEX_if.imem_rdata_in;
             IDEX_if.i_imm           <= IDEX_if.i_imm_in;
             IDEX_if.s_imm           <= IDEX_if.s_imm_in;
             IDEX_if.b_imm           <= IDEX_if.b_imm_in;

@@ -98,12 +98,15 @@ assign store_funct3 = store_funct3_t'(EXMEM_if.control_word.funct3);
 //IFID_if
 assign IFID_if.pc_in = pc;
 assign IFID_if.pc_plus4_in = pc + 4;
+assign IFID_if.next_pc_in = pcmux_out;
 assign IFID_if.imem_rdata_in = imem_rdata;
 assign imem_address = pc;
 
 //IDEX_if
 assign IDEX_if.pc_in = IFID_if.pc;
 assign IDEX_if.pc_plus4_in = IFID_if.pc_plus4;
+assign IDEX_if.next_pc_in = IFID_if.next_pc;
+assign IDEX_if.imem_rdata_in = IFID_if.imem_rdata;
 assign IDEX_if.i_imm_in = IFID_if.i_imm;
 assign IDEX_if.s_imm_in = IFID_if.s_imm;
 assign IDEX_if.b_imm_in = IFID_if.b_imm;
@@ -116,6 +119,8 @@ assign IDEX_if.rs2_in = IFID_if.rs2;
 //EXMEM_if
 assign EXMEM_if.pc_in = IDEX_if.pc;
 assign EXMEM_if.pc_plus4_in = IDEX_if.pc_plus4;
+assign EXMEM_if.next_pc_in = IDEX_if.next_pc;
+assign EXMEM_if.imem_rdata_in = IDEX_if.imem_rdata;
 assign EXMEM_if.control_word_in = IDEX_if.control_word;
 assign EXMEM_if.u_imm_in = IDEX_if.u_imm;
 assign EXMEM_if.rs1_in = IDEX_if.rs1;
@@ -132,6 +137,8 @@ assign dmem_wdata = EXMEM_if.rs2_out;
 //MEMWB_if
 assign MEMWB_if.pc_in = EXMEM_if.pc;
 assign MEMWB_if.pc_plus4_in = EXMEM_if.pc_plus4;
+assign MEMWB_if.next_pc_in = EXMEM_if.next_pc;
+assign MEMWB_if.imem_rdata_in = EXMEM_if.imem_rdata;
 assign MEMWB_if.control_word_in = EXMEM_if.control_word;
 assign MEMWB_if.u_imm_in = EXMEM_if.u_imm;
 assign MEMWB_if.rs1_in = EXMEM_if.rs1;
@@ -140,6 +147,7 @@ assign MEMWB_if.rd_in = EXMEM_if.rd;
 assign MEMWB_if.br_en_in = EXMEM_if.br_en;
 assign MEMWB_if.alu_out_in = EXMEM_if.alu_out;
 assign MEMWB_if.dmem_rdata_in = dmem_rdata;
+assign MEMWB_if.dmem_byte_enable_in = dmem_byte_enable;
 
 /***************************** Registers *************************************/
 // Keep Instruction register named `IR` for RVFI Monitor
@@ -208,7 +216,7 @@ alu ALU(
 
 cmp CMP(
     .rs1_out (forwardingmux1_out),
-    .cmpmux_out,
+    .cmpmux_out(cmpmux_out),
     .cmpop (IDEX_if.control_word.cmpop),
     .br_en (EXMEM_if.br_en_in)
 );
@@ -370,29 +378,32 @@ always_comb begin : MUXES
         default: `BAD_MUX_SEL;
     endcase
 
-    unique case (store_funct3)
-        sw: dmem_byte_enable = 4'b1111;
-        sh: begin
-            unique case (dmem_address[1:0])
-                2'b00: dmem_byte_enable = 4'b0011;
-                2'b01: dmem_byte_enable = 4'b0110;
-                2'b10: dmem_byte_enable = 4'b1100;
-                default: dmem_byte_enable = 4'b1111;
-            endcase
-        end
-        sb: begin
-            unique case (dmem_address[1:0])
-                2'b00: dmem_byte_enable = 4'b0001;
-                2'b01: dmem_byte_enable = 4'b0010;
-                2'b10: dmem_byte_enable = 4'b0100;
-                2'b11: dmem_byte_enable = 4'b1000;
-                default: dmem_byte_enable = 4'b1111;
-            endcase
-        end
-        default: dmem_byte_enable = 4'b1111;
-    endcase
-
-    
+    if (EXMEM_if.control_word.opcode == rv32i_types::op_store) begin
+        unique case (store_funct3)
+            sw: dmem_byte_enable = 4'b1111;
+            sh: begin
+                unique case (dmem_address[1:0])
+                    2'b00: dmem_byte_enable = 4'b0011;
+                    2'b01: dmem_byte_enable = 4'b0110;
+                    2'b10: dmem_byte_enable = 4'b1100;
+                    default: dmem_byte_enable = 4'b1111;
+                endcase
+            end
+            sb: begin
+                unique case (dmem_address[1:0])
+                    2'b00: dmem_byte_enable = 4'b0001;
+                    2'b01: dmem_byte_enable = 4'b0010;
+                    2'b10: dmem_byte_enable = 4'b0100;
+                    2'b11: dmem_byte_enable = 4'b1000;
+                    default: dmem_byte_enable = 4'b1111;
+                endcase
+            end
+            default: dmem_byte_enable = 4'b1111;
+        endcase 
+    end
+    else begin
+        dmem_byte_enable = '0;
+    end
 
 end
 /*****************************************************************************/
