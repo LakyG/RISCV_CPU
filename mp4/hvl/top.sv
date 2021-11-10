@@ -92,7 +92,21 @@ always @(posedge itf.clk iff rvfi.commit) rvfi.order <= rvfi.order + 1;
 
 //PC:
     assign rvfi.pc_rdata = dut.cpu.datapath.MEMWB.MEMWB_if.pc;
-    assign rvfi.pc_wdata = dut.cpu.datapath.MEMWB.MEMWB_if.next_pc;
+    //assign rvfi.pc_wdata = dut.cpu.datapath.MEMWB.MEMWB_if.next_pc;
+    always_comb begin
+        if (dut.cpu.datapath.EXMEM.EXMEM_if.pc != '0) begin
+            rvfi.pc_wdata = dut.cpu.datapath.EXMEM.EXMEM_if.pc;
+        end
+        else if (dut.cpu.datapath.IDEX.IDEX_if.pc != '0) begin
+            rvfi.pc_wdata = dut.cpu.datapath.IDEX.IDEX_if.pc;
+        end
+        else if (dut.cpu.datapath.IFID.IFID_if.pc != '0) begin
+            rvfi.pc_wdata = dut.cpu.datapath.IFID.IFID_if.pc;
+        end
+        else begin
+            rvfi.pc_wdata = dut.cpu.datapath.pc;
+        end
+    end
 
 //Memory:
     always_comb begin
