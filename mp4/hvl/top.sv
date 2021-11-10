@@ -80,7 +80,15 @@ always @(posedge itf.clk iff rvfi.commit) rvfi.order <= rvfi.order + 1;
     assign rvfi.rs2_rdata = dut.cpu.datapath.MEMWB.MEMWB_if.rs2_out;
     assign rvfi.load_regfile = dut.cpu.datapath.MEMWB.MEMWB_if.control_word.load_regfile;
     assign rvfi.rd_addr = dut.cpu.datapath.MEMWB.MEMWB_if.rd;
-    assign rvfi.rd_wdata = dut.cpu.datapath.regfilemux_out;
+    
+    always_comb begin
+        if (dut.cpu.datapath.MEMWB.MEMWB_if.rd != 0) begin
+            rvfi.rd_wdata = dut.cpu.datapath.regfilemux_out;
+        end
+        else begin
+            rvfi.rd_wdata = '0;
+        end
+    end
 
 //PC:
     assign rvfi.pc_rdata = dut.cpu.datapath.MEMWB.MEMWB_if.pc;
