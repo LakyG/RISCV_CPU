@@ -420,7 +420,6 @@ end
     logic [31:0] clock_cycles;
     logic [31:0] br_j_instrs;
     logic [31:0] br_j_misses;
-    logic [31:0] br_j_accuracy;
 
     // Clock Cycles
     always_ff @(posedge clk, posedge rst) begin
@@ -433,7 +432,6 @@ end
         if (rst) begin
             br_j_instrs <= '0;
             br_j_misses <= '0;
-            br_j_accuracy <= '0;
         end
         else begin
             if ((IFID_if.opcode == op_br || IFID_if.opcode == op_jal || IFID_if.opcode == op_jalr) && IDEX_if.en) begin
@@ -443,8 +441,6 @@ end
             if (missprediction && IFID_if.en) begin
                 br_j_misses <= br_j_misses + 1; 
             end
-
-            br_j_accuracy <= (br_j_instrs - br_j_misses) / br_j_instrs;
         end
     end
 

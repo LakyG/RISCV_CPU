@@ -140,4 +140,24 @@ always_comb begin : OUTPUT_LOGIC
     endcase
 end
 
+/************************* Performance Counters ******************************/
+// TODO: Remove these during final competition code (Use the synth translate on/off feature)
+    logic [31:0] mem_request_count;
+    logic [31:0] hit_count;
+
+    // Cache Hit Rate
+    always_ff @(posedge clk, posedge rst) begin
+        if (rst) begin
+            mem_request_count <= '0;
+            hit_count <= '0;
+        end
+        else begin
+            if ((mem_read | mem_write) && state == IDLE) mem_request_count <= mem_request_count + 1;
+
+            if (hit && state == LOOKUP) hit_count <= hit_count + 1;
+        end
+    end
+
+/*****************************************************************************/
+
 endmodule : cache_control

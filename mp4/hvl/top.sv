@@ -44,13 +44,26 @@ always_comb begin
     end
 end
 
+logic [31:0] instr_count;
+always_ff @(posedge itf.clk, posedge itf.rst) begin
+    if (itf.rst) instr_count <= '0;
+    else begin
+        if (commit) instr_count <= instr_count + 1;
+    end
+end
+
 // Stop simulation on timeout (stall detection), halt
 always @(posedge itf.clk) begin
     if (itf.halt) begin
         $display("Number of Cycles: %d", dut.cpu.datapath.clock_cycles);
+        $display("Number of Instructions: %d", instr_count);
         $display("Branch Prediction Accuracy: %.1f%%",
             ((dut.cpu.datapath.br_j_instrs - dut.cpu.datapath.br_j_misses)*1.0 / dut.cpu.datapath.br_j_instrs) * 100);
-        $finish; 
+        $display("I-Cache Hit Rate: %.1f%%",
+            (dut.icache.control.hit_count*1.0 / dut.icache.control.mem_request_count) * 100);
+        $display("D-Cache Hit Rate: %.1f%%",
+            (dut.dcache.control.hit_count*1.0 / dut.dcache.control.mem_request_count) * 100);
+        $finish;
     end
     if (timeout == 0) begin
         $display("TOP: Timed out");
