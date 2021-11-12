@@ -10,7 +10,9 @@ module cache #(
     parameter s_tag    = 32 - s_offset - s_index, //24
     parameter s_mask   = 2**s_offset, //32
     parameter s_line   = 8*s_mask, //256
-    parameter num_sets = 2**s_index //8
+    parameter num_sets = 2**s_index, //8
+    parameter num_ways = 2,
+    parameter width = 1 //log(num_ways)
 )
 (
     input clk,
@@ -38,8 +40,8 @@ module cache #(
 
 // Datapath to Control
 logic hit;
-logic dirty0, dirty1;
-logic lru;
+logic [num_ways-1:0] dirty_out;
+logic [num_ways-1:0] lru;
 
 // Control to Datapath
 write_data_sel_t write_data_sel;
@@ -72,7 +74,11 @@ cache_datapath datapath (
     .ram_line_o(line_o),
     // Output to RAM
     .ram_line_i(line_i),
-    .ram_address_i(address_i)
+    .ram_address_i(address_i),
+    .valid_in(valid),
+    .dirty_in(dirty),
+    .hit_out(hit)
+
 );
 
 bus_adapter bus_adapter (

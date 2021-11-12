@@ -3,7 +3,17 @@ that controls the behavior of the cache. */
 
 import cache_types::*;
 
-module cache_control (
+module cache_control #(
+    parameter s_offset = 5,
+    parameter s_index  = 3,
+    parameter s_tag    = 32 - s_offset - s_index, //24
+    parameter s_mask   = 2**s_offset, //32
+    parameter s_line   = 8*s_mask, //256
+    parameter num_sets = 2**s_index, //8
+    parameter num_ways = 2,
+    parameter width = 1 //log(num_ways)
+)
+(
     input clk,
     input rst,
 
@@ -13,8 +23,8 @@ module cache_control (
     input mem_write,
     // Cache Datapath
     input hit,
-    input dirty0, dirty1,
-    input lru,
+    input [num_ways-1:0] dirty_out,
+    input [num_ways-1:0] lru,
     // RAM
     input ram_resp_o,
 
@@ -54,7 +64,7 @@ always_comb begin : NEXT_STATE_LOGIC
         end
         LOOKUP: begin
             if (hit)                                   next_state = IDLE;
-            else if ((~lru & dirty0) | (lru & dirty1)) next_state = WRITEBACK;
+            else if (dirty_out[lru]) next_state = WRITEBACK;
             else                                       next_state = FETCH;
         end
         WRITEBACK: begin
