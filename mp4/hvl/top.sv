@@ -46,8 +46,12 @@ end
 
 // Stop simulation on timeout (stall detection), halt
 always @(posedge itf.clk) begin
-    if (itf.halt)
-        $finish;
+    if (itf.halt) begin
+        $display("Number of Cycles: %d", dut.cpu.datapath.clock_cycles);
+        $display("Branch Prediction Accuracy: %.1f%%",
+            ((dut.cpu.datapath.br_j_instrs - dut.cpu.datapath.br_j_misses)*1.0 / dut.cpu.datapath.br_j_instrs) * 100);
+        $finish; 
+    end
     if (timeout == 0) begin
         $display("TOP: Timed out");
         $finish;
@@ -196,5 +200,7 @@ mp4 dut(
     .pmem_wdata(itf.mem_wdata)
 );
 /***************************** End Instantiation *****************************/
+
+    // Assertions
 
 endmodule

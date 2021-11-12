@@ -31,20 +31,23 @@ module hazard_unit
     output logic MEMWB_en,
 
     output logic IFID_flush,
-    output logic IDEX_flush
+    output logic IDEX_flush,
+
+    // Performance Counter
+    output logic missprediction
 );
 
     logic branch_missprediction;
-    logic jump_instr;
-    logic br_j_flush;
+    logic jump_missprediction;
     logic dmem_request;
     logic load_use_hazard;
 
+    // TODO: these two will change once we have Local Branch Prediction
     assign branch_missprediction = br_en && (opcode == rv32i_types::op_br);
-    assign jump_instr = (opcode == rv32i_types::op_jal) || (opcode == rv32i_types::op_jalr);
+    assign jump_missprediction = (opcode == rv32i_types::op_jal) || (opcode == rv32i_types::op_jalr);
 
     // Check if a flush due to branch misprediction or jump is needed
-    assign br_j_flush = branch_missprediction | jump_instr;
+    assign missprediction = branch_missprediction | jump_missprediction;
 
     // Check for any D-Mem request
     assign dmem_request = dmem_read_mem | dmem_write_mem;
@@ -57,12 +60,12 @@ module hazard_unit
         pc_en = 0;
 
         // if (~load_use_hazard) begin                                 // Check for Load-Use Hazard
-        //     if ((imem_resp && ~dmem_request) || br_j_flush) begin   // Check for PC enable conditions
+        //     if ((imem_resp && ~dmem_request) || missprediction) begin   // Check for PC enable conditions
         //         pc_en = 1;
         //     end 
         // end
 
-        if ((IFID_en & (~IFID_flush)) || br_j_flush) begin
+        if ((IFID_en & (~IFID_flush)) || missprediction) begin
             pc_en = 1;
         end
     end
@@ -98,14 +101,14 @@ module hazard_unit
             EXMEM_en = 1;
             MEMWB_en = 1;
         end
-        else if (~imem_resp && dmem_resp && ~br_j_flush) begin
+        else if (~imem_resp && dmem_resp && ~missprediction) begin
             IFID_en  = 1;
             IDEX_en  = 1;
             EXMEM_en = 1;
             MEMWB_en = 1;
             IFID_flush = 1;
         end
-        else if (~imem_resp && ~dmem_request && ~br_j_flush) begin
+        else if (~imem_resp && ~dmem_request && ~missprediction) begin
             IFID_en  = 1;
             IDEX_en  = 1;
             EXMEM_en = 1;
@@ -114,7 +117,7 @@ module hazard_unit
         end
 
         // Check for Branch Misprediction (MP3-CP2 is static branch prediction)
-        if (br_j_flush) begin
+        if (missprediction) begin
             IFID_flush = 1;
             IDEX_flush = 1;
         end

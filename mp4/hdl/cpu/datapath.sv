@@ -72,10 +72,15 @@ pipeline_registers_if MEMWB_if();
 rv32i_word regfilemux_out;
 rv32i_word rm_out;
 assign rm_out = regfilemux_out;
+
 //pc
 rv32i_word pc;
 logic load_pc;
 pcmux::pcmux_sel_t pcmux_sel;
+
+//hazard
+logic missprediction;
+
 //alu
 rv32i_word alumux1_out, alumux2_out;
 rv32i_word alu_out;
@@ -239,7 +244,9 @@ hazard_unit hazard(
     .EXMEM_en(EXMEM_if.en),
     .MEMWB_en(MEMWB_if.en),
     .IFID_flush(IFID_if.flush),
-    .IDEX_flush(IDEX_if.flush)
+    .IDEX_flush(IDEX_if.flush),
+
+    .missprediction(missprediction)
 );
 
 forwarding_unit forwarding(
@@ -407,6 +414,43 @@ always_comb begin : MUXES
 
 end
 /*****************************************************************************/
+
+/************************* Performance Counters ******************************/
+// TODO: Remove these during final competition code (Use the synth translate on/off feature)
+    logic [31:0] clock_cycles;
+    logic [31:0] br_j_instrs;
+    logic [31:0] br_j_misses;
+    logic [31:0] br_j_accuracy;
+
+    // Clock Cycles
+    always_ff @(posedge clk, posedge rst) begin
+        if (rst) clock_cycles <= '0;
+        else clock_cycles <= clock_cycles + 1;
+    end
+
+    // Branch-Jump Prediction Accuracy
+    always_ff @(posedge clk, posedge rst) begin
+        if (rst) begin
+            br_j_instrs <= '0;
+            br_j_misses <= '0;
+            br_j_accuracy <= '0;
+        end
+        else begin
+            if ((IFID_if.opcode == op_br || IFID_if.opcode == op_jal || IFID_if.opcode == op_jalr) && IDEX_if.en) begin
+                br_j_instrs <= br_j_instrs + 1;
+            end
+
+            if (missprediction && IFID_if.en) begin
+                br_j_misses <= br_j_misses + 1; 
+            end
+
+            br_j_accuracy <= (br_j_instrs - br_j_misses) / br_j_instrs;
+        end
+    end
+
+
+/*****************************************************************************/
+
 endmodule : datapath
 
 module cmp
