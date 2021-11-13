@@ -41,7 +41,7 @@ module cache #(
 // Datapath to Control
 logic hit;
 logic [num_ways-1:0] dirty_out;
-logic [num_ways-1:0] lru;
+logic [width-1:0] lru;
 
 // Control to Datapath
 write_data_sel_t write_data_sel;

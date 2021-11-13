@@ -24,7 +24,7 @@ module cache_control #(
     // Cache Datapath
     input hit,
     input [num_ways-1:0] dirty_out,
-    input [num_ways-1:0] lru,
+    input [width-1:0] lru,
     // RAM
     input ram_resp_o,
 
