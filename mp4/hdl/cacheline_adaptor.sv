@@ -1,11 +1,14 @@
-module cacheline_adaptor
+module cacheline_adaptor #(
+    parameter s_offset = 4,
+    parameter size = (2**s_offset)*8 //cacheline size
+)
 (
     input clk,
     input reset_n,
 
     // Port to LLC (Lowest Level Cache)
-    input logic [255:0] line_i,
-    output logic [255:0] line_o,
+    input logic [size-1:0] line_i,
+    output logic [size-1:0] line_o,
     input logic [31:0] address_i,
     input read_i,
     input write_i,
@@ -23,12 +26,12 @@ module cacheline_adaptor
     typedef enum bit [2:0] {IDLE, WAITR, WAITW, R, W, DONE} macro_t;
     struct packed {
         macro_t macro;
-        logic [1:0] count;
+        logic [s_offset-4:0] count;
     } state;
-    localparam logic [1:0] maxcount = 2'b11;
+    localparam logic [s_offset-4:0] maxcount = (2**(s_offset-3))-1;
 
 
-    logic [255:0] linebuf;
+    logic [size-1:0] linebuf;
     logic [31:0] addressbuf;
     assign line_o = linebuf;
     assign address_o = addressbuf;
@@ -52,7 +55,7 @@ module cacheline_adaptor
                         state.macro <= WAITW;
                         linebuf <= line_i;
                         addressbuf <= address_i;
-                        state.count <= 2'b00;
+                        state.count <= 0;
                     end
                     READ_OP: begin
                         state.macro <= WAITR;
@@ -63,14 +66,14 @@ module cacheline_adaptor
             WAITR: begin
                 if (resp_i) begin
                     state.macro <= R;
-                    state.count <= 2'b01;
+                    state.count <= 1;
                     linebuf[63:0] <= burst_i;
                 end
             end
             WAITW: begin
                 if (resp_i) begin
                     state.macro <= W;
-                    state.count <= 2'b01;
+                    state.count <= 1;
                 end
             end
             R: begin
@@ -78,13 +81,13 @@ module cacheline_adaptor
                     state.macro <= DONE;
                 end
                 linebuf[64*state.count +: 64] <= burst_i;
-                state.count <= state.count + 2'b01;
+                state.count <= state.count + 1;
             end
             W: begin
                 if (state.count == maxcount) begin
                     state.macro <= DONE;
                 end
-                state.count <= state.count + 2'b01;
+                state.count <= state.count + 1;
             end
             DONE: begin
                 state.macro <= IDLE;

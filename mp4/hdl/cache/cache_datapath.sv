@@ -5,7 +5,7 @@ logic gates and other supporting logic. */
 import cache_types::*;
 
 module cache_datapath #(
-    parameter s_offset = 5,
+    parameter s_offset = 4,
     parameter s_index  = 3,
     parameter s_tag    = 32 - s_offset - s_index, //24
     parameter s_mask   = 2**s_offset, //32
@@ -22,7 +22,7 @@ module cache_datapath #(
     // CPU
     input mem_write,
     input mem_read,
-    input logic [s_mask-1:0] mem_address,
+    input logic [31:0] mem_address,
     input logic [s_line-1:0] mem_wdata256,
     input logic [s_mask-1:0] mem_byte_enable256,
     // Controller
@@ -45,7 +45,7 @@ module cache_datapath #(
     output logic [width-1:0] lru,
     // RAM
     output logic [s_line-1:0] ram_line_i,
-    output logic [s_mask-1:0] ram_address_i
+    output logic [31:0] ram_address_i
 );
 
     // Internal Signals
@@ -54,7 +54,7 @@ module cache_datapath #(
     logic [num_ways-1:0][s_line-1:0] block;
     logic [num_ways-1:0] hit;
 
-    logic [31:0] write_en;
+    logic [s_mask-1:0] write_en;
 
     logic [width-1:0] block_sel;
 
@@ -107,7 +107,7 @@ module cache_datapath #(
                 .datain(tag_in),
                 .dataout(tag[j])
             );
-            data_array DATA (
+            data_array #(.s_offset(s_offset)) DATA (
                 .clk(clk),
                 .rst(rst),
                 .read(read),
@@ -183,11 +183,13 @@ module cache_datapath #(
         endcase
     end
 
+    logic [s_offset-1:0] zeros = '0;
+
     always_comb begin : RAM_ADDR_SELECT
         case (ram_addr_sel)
-            CPU_ADDR:    ram_address_i = {mem_address[31:5], 5'b0};
+            CPU_ADDR:    ram_address_i = {mem_address[31:s_offset], zeros};
             TAG_ADDR: begin
-                ram_address_i = {tag[lru], index, 5'b0};
+                ram_address_i = {tag[lru], index, zeros};
             end
         endcase
     end

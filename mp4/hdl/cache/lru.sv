@@ -32,9 +32,9 @@ output logic [width-1:0] evict_ways;
 
 logic [num_ways-2:0] data [num_sets-1:0] /* synthesis ramstyle = "logic" */;
 //logic [width-1:0] _dataout;
-logic [num_ways-1:0] datain;
-logic [num_ways-1:0] rdataout;
-logic [num_ways-1:0] wdataout;
+logic [num_ways-2:0] datain;
+logic [num_ways-2:0] rdataout;
+logic [num_ways-2:0] wdataout;
 //assign evict_ways = _dataout;
 
 always_comb begin

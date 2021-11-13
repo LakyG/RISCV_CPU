@@ -4,7 +4,7 @@ that controls the behavior of the cache. */
 import cache_types::*;
 
 module cache_control #(
-    parameter s_offset = 5,
+    parameter s_offset = 4,
     parameter s_index  = 3,
     parameter s_tag    = 32 - s_offset - s_index, //24
     parameter s_mask   = 2**s_offset, //32

@@ -1,7 +1,11 @@
 import rv32i_types::*;
 import control_word::*;
 
-module mp4(
+module mp4 #(
+    parameter s_offset = 5,
+    parameter size = (2**s_offset)*8 //cacheline size
+)
+(
     input clk,
     input rst,
 
@@ -41,12 +45,12 @@ logic [31:0] imem_wdata;
 rv32i_word i_pmem_address;
 logic i_pmem_read;
 logic i_pmem_write;
-logic [255:0] i_pmem_wdata;
-logic [255:0] i_pmem_rdata;
+logic [size-1:0] i_pmem_wdata;
+logic [size-1:0] i_pmem_rdata;
 logic [3:0] imem_byte_enable;
 logic i_pmem_resp;
 
-cache icache (
+cache #(.s_offset(s_offset)) icache(
     .*,
     // .mem_address(imem_address),
     // .mem_wdata('0),
@@ -91,12 +95,12 @@ logic [31:0] dmem_wdata;
 rv32i_word d_pmem_address;
 logic d_pmem_read;
 logic d_pmem_write;
-logic [255:0] d_pmem_wdata;
-logic [255:0] d_pmem_rdata;
+logic [size-1:0] d_pmem_wdata;
+logic [size-1:0] d_pmem_rdata;
 logic [3:0] dmem_byte_enable;
 logic d_pmem_resp;
 
-cache dcache (
+cache #(.s_offset(s_offset)) dcache(
     .*,
     // .mem_address(dmem_address),
     // .mem_wdata(dmem_wdata),
@@ -131,16 +135,16 @@ cache dcache (
     .write_i(d_pmem_write)
 );
 
-logic [255:0] pmem_wdata_c;
-logic [255:0] pmem_rdata_c;
+logic [size-1:0] pmem_wdata_c;
+logic [size-1:0] pmem_rdata_c;
 logic [31:0] pmem_address_c;
 logic pmem_read_c;
 logic pmem_write_c;
 logic pmem_resp_c;
 
 
-arbiter arbiter(.*);
-cacheline_adaptor cacheline_adaptor
+arbiter #(.s_offset(s_offset)) arbiter(.*);
+cacheline_adaptor #(.s_offset(s_offset)) cacheline_adaptor
 (
     .*,
     .reset_n(~rst),

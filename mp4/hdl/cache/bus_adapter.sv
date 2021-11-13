@@ -3,19 +3,24 @@ A module to help your CPU (which likes to deal with 4 bytes
 at a time) talk to your cache (which likes to deal with 32
 bytes at a time).*/
 
-module bus_adapter
+module bus_adapter #(
+    parameter s_offset = 4,
+    parameter size = (2**s_offset)*8 //cacheline size
+)
 (
-    output [255:0] mem_wdata256,
-    input [255:0] mem_rdata256,
+    output [size-1:0] mem_wdata256,
+    input [size-1:0] mem_rdata256,
     input [31:0] mem_wdata,
     output [31:0] mem_rdata,
     input [3:0] mem_byte_enable,
-    output logic [31:0] mem_byte_enable256,
+    output logic [(2**s_offset-1):0] mem_byte_enable256,
     input [31:0] address
 );
+localparam num_sets = 2**(s_offset-2);
 
-assign mem_wdata256 = {8{mem_wdata}};
-assign mem_rdata = mem_rdata256[(32*address[4:2]) +: 32];
-assign mem_byte_enable256 = {28'h0, mem_byte_enable} << (address[4:2]*4);
+assign mem_wdata256 = {num_sets{mem_wdata}};
+assign mem_rdata = mem_rdata256[(32*address[s_offset-1:2]) +: 32];
+logic [(2**s_offset-5):0] zeros = '0;
+assign mem_byte_enable256 = {zeros, mem_byte_enable} << (address[s_offset-1:2]*4);
 
 endmodule : bus_adapter
