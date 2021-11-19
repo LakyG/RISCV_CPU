@@ -71,6 +71,9 @@ module hazard_unit
     end
 
     // PC Select Mux
+    // TODO: Change to work for Branch/Jump Prediction
+    // TODO: Change JUMP instruction logic to be determined in the FETCH stage itself?
+    //      This way we don't waste 2 cycles for each JUMP, because it is currently resolved in the EX stage
     always_comb begin
         unique case (opcode)
             op_br: pcmux_sel = pcmux_sel_t'(br_en);

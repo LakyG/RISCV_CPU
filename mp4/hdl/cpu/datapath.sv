@@ -84,6 +84,8 @@ logic missprediction;
 //alu
 rv32i_word alumux1_out, alumux2_out;
 rv32i_word alu_out;
+rv32i_word alu_out_mod2;
+assign alu_out_mod2 = {alu_out[31:1], 1'b0};
 rv32i_word forwardingmux1_out;
 rv32i_word forwardingmux2_out;
 forwardingmux_t forwardingmux1_sel;
@@ -96,6 +98,11 @@ assign forwardingmux2 = forwardingmux2_out;
 //cmp
 rv32i_word cmpmux_out;
 logic br_en;
+
+//branch prediction
+logic predictionFailed;
+rv32i_word expected_nextPC;
+
 //dmem
 store_funct3_t store_funct3;
 assign store_funct3 = store_funct3_t'(EXMEM_if.control_word.funct3);
@@ -265,6 +272,31 @@ forwarding_unit forwarding(
 );
 /*****************************************************************************/
 
+// Branch Prediction Result
+always_comb begin
+    expected_nextPC = IDEX.next_pc;
+
+    if (IDEX_if.control_word.opcode == rv32i_types::op_br) begin
+        if (EXMEM_if.br_en_in) begin
+            expected_nextPC = alu_out;
+        end
+        else begin
+            expected_nextPC = IDEX_if.pc_plus4;
+        end
+    end
+    else if (IDEX_if.control_word.opcode == rv32i_types::op_jal) begin
+        expected_nextPC = alu_out;
+    end
+    else if (IDEX_if.control_word.opcode == rv32i_types::op_jalr) begin
+        expected_nextPC = alu_out_mod2;
+    end
+
+    predictionFailed = 0;
+    if (IDEX.next_pc != expected_nextPC) begin
+        predictionFailed = 1;
+    end
+end
+
 /******************************** Muxes **************************************/
 always_comb begin : MUXES
     // We provide one (incomplete) example of a mux instantiated using
@@ -275,9 +307,8 @@ always_comb begin : MUXES
     // warning when an unexpected mux select value occurs
     unique case (pcmux_sel)
         pcmux::pc_plus4: pcmux_out = IFID_if.pc_plus4_in;
-        pcmux::alu_out: pcmux_out = EXMEM_if.alu_out_in;
-        pcmux::alu_mod2: pcmux_out = {EXMEM_if.alu_out_in[31:1], 1'b0}; 
-        // etc.
+        pcmux::alu_out: pcmux_out = alu_out;
+        pcmux::alu_mod2: pcmux_out = alu_out_mod2;
         default: `BAD_MUX_SEL;
     endcase
 
