@@ -131,7 +131,7 @@ assign EXMEM_if.u_imm_in = IDEX_if.u_imm;
 assign EXMEM_if.rs1_in = IDEX_if.rs1;
 assign EXMEM_if.rs2_in = IDEX_if.rs2;
 assign EXMEM_if.rd_in = IDEX_if.rd;
-assign EXMEM_if.rs2_out_in = IDEX_if.rs2_out;
+assign EXMEM_if.rs2_out_in = forwardingmux2;
 assign EXMEM_if.alu_out_in = alu_out;
 
 assign dmem_read = EXMEM_if.control_word.dmem_read;
