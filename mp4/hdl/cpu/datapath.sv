@@ -77,6 +77,7 @@ assign rm_out = regfilemux_out;
 rv32i_word pc;
 logic load_pc;
 pcmux::pcmux_sel_t pcmux_sel;
+nextpcmux_t next_pc;
 
 //hazard
 logic missprediction;
@@ -101,7 +102,11 @@ logic br_en;
 
 //branch prediction
 logic predictionFailed;
-rv32i_word expected_nextPC;
+rv32i_word expected_next_pc;
+rv32i_word predicted_pc;
+
+predictmux_t predicted_direction;
+rv32i_word predicted_target;
 
 //dmem
 store_funct3_t store_funct3;
@@ -110,7 +115,7 @@ assign store_funct3 = store_funct3_t'(EXMEM_if.control_word.funct3);
 //IFID_if
 assign IFID_if.pc_in = pc;
 assign IFID_if.pc_plus4_in = pc + 4;
-assign IFID_if.next_pc_in = pcmux_out;
+assign IFID_if.next_pc_in = next_pc;
 assign IFID_if.imem_rdata_in = imem_rdata;
 assign imem_address = pc;
 
@@ -195,7 +200,7 @@ MEMWB_reg MEMWB(.*);
 pc_register PC(
     .*,
     .load (load_pc),
-    .in (pcmux_out),
+    .in (next_pc),
     .out (pc)
 );
 
@@ -274,25 +279,25 @@ forwarding_unit forwarding(
 
 // Branch Prediction Result
 always_comb begin
-    expected_nextPC = IDEX.next_pc;
+    expected_next_pc = IDEX_if.next_pc;
 
     if (IDEX_if.control_word.opcode == rv32i_types::op_br) begin
         if (EXMEM_if.br_en_in) begin
-            expected_nextPC = alu_out;
+            expected_next_pc = alu_out;
         end
         else begin
-            expected_nextPC = IDEX_if.pc_plus4;
+            expected_next_pc = IDEX_if.pc_plus4;
         end
     end
     else if (IDEX_if.control_word.opcode == rv32i_types::op_jal) begin
-        expected_nextPC = alu_out;
+        expected_next_pc = alu_out;
     end
     else if (IDEX_if.control_word.opcode == rv32i_types::op_jalr) begin
-        expected_nextPC = alu_out_mod2;
+        expected_next_pc = alu_out_mod2;
     end
 
     predictionFailed = 0;
-    if (IDEX.next_pc != expected_nextPC) begin
+    if (IDEX_if.next_pc != expected_next_pc) begin
         predictionFailed = 1;
     end
 end
@@ -310,6 +315,17 @@ always_comb begin : MUXES
         pcmux::alu_out: pcmux_out = alu_out;
         pcmux::alu_mod2: pcmux_out = alu_out_mod2;
         default: `BAD_MUX_SEL;
+    endcase
+
+    unique case (predicted_direction)
+        datapath_mux_types::nottaken: predicted_pc = pcmux_out;
+        datapath_mux_types::taken:    predicted_pc = predicted_target;
+        default: `BAD_MUX_SEL;
+    endcase
+
+    unique case (nextpcmux_t'(predictionFailed))
+        datapath_mux_types::predicted: next_pc = predicted_pc;
+        datapath_mux_types::expected:  next_pc = expected_next_pc;
     endcase
 
     unique case (MEMWB_if.control_word.regfilemux_sel)
@@ -370,9 +386,6 @@ always_comb begin : MUXES
         default: `BAD_MUX_SEL;
     endcase
     
-    
-
-
     unique case (IDEX_if.control_word.alumux2_sel)
         alumux::i_imm: alumux2_out = IDEX_if.i_imm;
         alumux::u_imm: alumux2_out = IDEX_if.u_imm;
