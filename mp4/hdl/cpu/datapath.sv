@@ -274,7 +274,7 @@ forwarding_unit forwarding(
 
 // Branch Prediction Result
 always_comb begin
-    expected_nextPC = IDEX.next_pc;
+    expected_nextPC = IDEX_if.next_pc;
 
     if (IDEX_if.control_word.opcode == rv32i_types::op_br) begin
         if (EXMEM_if.br_en_in) begin
@@ -292,7 +292,7 @@ always_comb begin
     end
 
     predictionFailed = 0;
-    if (IDEX.next_pc != expected_nextPC) begin
+    if (IDEX_if.next_pc != expected_nextPC) begin
         predictionFailed = 1;
     end
 end
