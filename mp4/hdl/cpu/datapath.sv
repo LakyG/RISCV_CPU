@@ -145,6 +145,7 @@ assign EXMEM_if.u_imm_in = IDEX_if.u_imm;
 assign EXMEM_if.rs1_in = IDEX_if.rs1;
 assign EXMEM_if.rs2_in = IDEX_if.rs2;
 assign EXMEM_if.rd_in = IDEX_if.rd;
+assign EXMEM_if.br_en_in = br_en;
 assign EXMEM_if.rs2_out_in = forwardingmux2;
 assign EXMEM_if.alu_out_in = alu_out;
 
@@ -256,7 +257,7 @@ cmp CMP(
     .rs1_out (forwardingmux1_out),
     .cmpmux_out(cmpmux_out),
     .cmpop (IDEX_if.control_word.cmpop),
-    .br_en (EXMEM_if.br_en_in)
+    .br_en (br_en)
 );
 
 hazard_unit hazard(
@@ -303,7 +304,7 @@ always_comb begin
     expected_next_pc = IDEX_if.next_pc;
 
     if (IDEX_if.control_word.opcode == rv32i_types::op_br) begin
-        if (EXMEM_if.br_en_in) begin
+        if (br_en) begin
             expected_next_pc = alu_out;
         end
         else begin
