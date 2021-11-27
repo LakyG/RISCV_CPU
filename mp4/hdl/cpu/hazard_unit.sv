@@ -12,7 +12,7 @@ module hazard_unit
     input rv32i_reg rs2_id,
 
     // From EX Stage
-    input logic br_en,
+    input logic predictionFailed,
     input rv32i_opcode opcode,
     input rv32i_reg rd_ex,
 
@@ -22,7 +22,6 @@ module hazard_unit
 
     // PC Control
     output logic pc_en,
-    output pcmux_sel_t pcmux_sel,
     
     // Pipeline Register Control
     output logic IFID_en,
@@ -33,21 +32,17 @@ module hazard_unit
     output logic IFID_flush,
     output logic IDEX_flush,
 
+    output logic predict_en,
+
     // Performance Counter
     output logic missprediction
 );
 
-    logic branch_missprediction;
-    logic jump_missprediction;
     logic dmem_request;
     logic load_use_hazard;
 
-    // TODO: these two will change once we have Local Branch Prediction
-    assign branch_missprediction = br_en && (opcode == rv32i_types::op_br);
-    assign jump_missprediction = (opcode == rv32i_types::op_jal) || (opcode == rv32i_types::op_jalr);
-
     // Check if a flush due to branch misprediction or jump is needed
-    assign missprediction = branch_missprediction | jump_missprediction;
+    assign missprediction = predictionFailed;
 
     // Check for any D-Mem request
     assign dmem_request = dmem_read_mem | dmem_write_mem;
@@ -71,14 +66,16 @@ module hazard_unit
     end
 
     // PC Select Mux
-    always_comb begin
-        unique case (opcode)
-            op_br: pcmux_sel = pcmux_sel_t'(br_en);
-            op_jal: pcmux_sel = pcmux::alu_out;
-            op_jalr: pcmux_sel = pcmux::alu_mod2;
-            default: pcmux_sel = pcmux::pc_plus4;
-        endcase
-    end
+    // TODO: Change JUMP instruction logic to be determined in the FETCH stage itself?
+    //      This way we don't waste 2 cycles for each JUMP, because it is currently resolved in the EX stage
+    // always_comb begin
+    //     unique case (opcode)
+    //         op_br: pcmux_sel = pcmux_sel_t'(br_en);
+    //         op_jal: pcmux_sel = pcmux::alu_out;
+    //         op_jalr: pcmux_sel = pcmux::alu_mod2;
+    //         default: pcmux_sel = pcmux::pc_plus4;
+    //     endcase
+    // end
 
     //Pipeline Register Enable and Flush
     always_comb begin
@@ -130,5 +127,11 @@ module hazard_unit
         if (load_use_hazard) begin
             IFID_en = 0;
         end
+    end
+
+    // Branch Predictor enable
+    always_comb begin
+        predict_en = 1;
+        if (~IFID_en) predict_en = IDEX_en;
     end
 endmodule : hazard_unit

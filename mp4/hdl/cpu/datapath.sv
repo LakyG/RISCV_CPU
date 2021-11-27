@@ -42,6 +42,8 @@ module datapath
     // output logic [1:0] addr_2bit
 );
 
+localparam PREDICTOR_SIZE = 7; // Number of bits to use for Branch Predictor sets
+
 /******************* Signals Needed for RVFI Monitor *************************/
 rv32i_word pcmux_out;
 rv32i_word mdrreg_out;
@@ -76,14 +78,17 @@ assign rm_out = regfilemux_out;
 //pc
 rv32i_word pc;
 logic load_pc;
-pcmux::pcmux_sel_t pcmux_sel;
+rv32i_word next_pc;
 
 //hazard
+logic predict_en;
 logic missprediction;
 
 //alu
 rv32i_word alumux1_out, alumux2_out;
 rv32i_word alu_out;
+rv32i_word alu_out_mod2;
+assign alu_out_mod2 = {alu_out[31:1], 1'b0};
 rv32i_word forwardingmux1_out;
 rv32i_word forwardingmux2_out;
 forwardingmux_t forwardingmux1_sel;
@@ -96,6 +101,15 @@ assign forwardingmux2 = forwardingmux2_out;
 //cmp
 rv32i_word cmpmux_out;
 logic br_en;
+
+//branch prediction
+logic predictionFailed;
+rv32i_word expected_next_pc;
+rv32i_word predicted_pc;
+
+predictmux_t predicted_direction;
+rv32i_word predicted_target;
+
 //dmem
 store_funct3_t store_funct3;
 assign store_funct3 = store_funct3_t'(EXMEM_if.control_word.funct3);
@@ -103,7 +117,7 @@ assign store_funct3 = store_funct3_t'(EXMEM_if.control_word.funct3);
 //IFID_if
 assign IFID_if.pc_in = pc;
 assign IFID_if.pc_plus4_in = pc + 4;
-assign IFID_if.next_pc_in = pcmux_out;
+assign IFID_if.next_pc_in = next_pc;
 assign IFID_if.imem_rdata_in = imem_rdata;
 assign imem_address = pc;
 
@@ -183,13 +197,32 @@ MEMWB_reg MEMWB(.*);
 // else
 //     assign test = 32'b1;
                             
-
-
 pc_register PC(
     .*,
     .load (load_pc),
-    .in (pcmux_out),
+    .in (next_pc),
     .out (pc)
+);
+
+local_prediction_table #(.s_index(PREDICTOR_SIZE)) bpt (
+    .*,
+    .predict_en(predict_en),
+    .curr_pc(pc),
+    .resolved_pc(IDEX_if.pc),
+    .predictionFailed(predictionFailed),
+
+    .predicted_direction(predicted_direction)
+);
+
+target_buffer #(.s_index(PREDICTOR_SIZE)) btb (
+    .*,
+    .predict_en(predict_en),
+    .curr_pc(pc),
+    .resolved_pc(IDEX_if.pc),
+    .predictionFailed(predictionFailed),
+    .expected_next_pc(expected_next_pc),
+
+    .predicted_target(predicted_target)
 );
 
 control control(
@@ -231,9 +264,8 @@ hazard_unit hazard(
     .dmem_resp(dmem_resp),
     .rs1_id(IFID_if.rs1),
     .rs2_id(IFID_if.rs2),
-    .br_en(EXMEM_if.br_en_in),
+    .predictionFailed(predictionFailed),
     .opcode(IDEX_if.control_word.opcode),
-    .pcmux_sel(pcmux_sel),
     .dmem_read_mem(EXMEM_if.control_word.dmem_read),
     .dmem_write_mem(EXMEM_if.control_word.dmem_write),
 
@@ -245,6 +277,7 @@ hazard_unit hazard(
     .MEMWB_en(MEMWB_if.en),
     .IFID_flush(IFID_if.flush),
     .IDEX_flush(IDEX_if.flush),
+    .predict_en(predict_en),
 
     .missprediction(missprediction)
 );
@@ -265,6 +298,31 @@ forwarding_unit forwarding(
 );
 /*****************************************************************************/
 
+// Branch Prediction Result
+always_comb begin
+    expected_next_pc = IDEX_if.next_pc;
+
+    if (IDEX_if.control_word.opcode == rv32i_types::op_br) begin
+        if (EXMEM_if.br_en_in) begin
+            expected_next_pc = alu_out;
+        end
+        else begin
+            expected_next_pc = IDEX_if.pc_plus4;
+        end
+    end
+    else if (IDEX_if.control_word.opcode == rv32i_types::op_jal) begin
+        expected_next_pc = alu_out;
+    end
+    else if (IDEX_if.control_word.opcode == rv32i_types::op_jalr) begin
+        expected_next_pc = alu_out_mod2;
+    end
+
+    predictionFailed = 0;
+    if (IDEX_if.next_pc != expected_next_pc) begin
+        predictionFailed = 1;
+    end
+end
+
 /******************************** Muxes **************************************/
 always_comb begin : MUXES
     // We provide one (incomplete) example of a mux instantiated using
@@ -273,12 +331,16 @@ always_comb begin : MUXES
     // useful in SystemVerilog.  In this case, we actually use
     // Offensive programming --- making simulation halt with a fatal message
     // warning when an unexpected mux select value occurs
-    unique case (pcmux_sel)
-        pcmux::pc_plus4: pcmux_out = IFID_if.pc_plus4_in;
-        pcmux::alu_out: pcmux_out = EXMEM_if.alu_out_in;
-        pcmux::alu_mod2: pcmux_out = {EXMEM_if.alu_out_in[31:1], 1'b0}; 
-        // etc.
+
+    unique case (predicted_direction)
+        datapath_mux_types::nottaken: predicted_pc = IFID_if.pc_plus4_in;
+        datapath_mux_types::taken:    predicted_pc = predicted_target;
         default: `BAD_MUX_SEL;
+    endcase
+
+    unique case (nextpcmux_t'(predictionFailed))
+        datapath_mux_types::predicted: next_pc = predicted_pc;
+        datapath_mux_types::expected:  next_pc = expected_next_pc;
     endcase
 
     unique case (MEMWB_if.control_word.regfilemux_sel)
@@ -339,9 +401,6 @@ always_comb begin : MUXES
         default: `BAD_MUX_SEL;
     endcase
     
-    
-
-
     unique case (IDEX_if.control_word.alumux2_sel)
         alumux::i_imm: alumux2_out = IDEX_if.i_imm;
         alumux::u_imm: alumux2_out = IDEX_if.u_imm;
@@ -438,6 +497,7 @@ end
                 br_j_instrs <= br_j_instrs + 1;
             end
 
+            // TODO: This missprediction signal might change after Branch Prediction implementation
             if (missprediction && IFID_if.en) begin
                 br_j_misses <= br_j_misses + 1; 
             end

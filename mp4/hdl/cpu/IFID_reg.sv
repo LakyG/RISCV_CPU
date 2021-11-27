@@ -68,7 +68,7 @@ module IFID_reg (
         if (rst) begin
             IFID_if.pc          <= 32'h60;
             IFID_if.pc_plus4    <= 32'h64;
-            IFID_if.next_pc     <= IFID_if.pc_plus4;
+            IFID_if.next_pc     <= 32'h64;
             IFID_if.imem_rdata  <= '0;
         end
         else if (IFID_if.en && IFID_if.flush) begin

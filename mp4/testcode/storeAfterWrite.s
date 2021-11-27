@@ -14,6 +14,7 @@ nop
 nop
 nop
 
+addi x3, x0, 0xBAD
 lw x3, DATA
 
 HALT:
