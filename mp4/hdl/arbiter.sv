@@ -36,14 +36,14 @@ endfunction
 
 always_comb begin
     set_defaults();
-    if (d_pmem_read & (~(i_pmem_read & (pmem_address_c == i_pmem_address)))) begin
+    if (d_pmem_read & (~i_pmem_read)) begin
         pmem_read_c = 1'b1;
         pmem_address_c = d_pmem_address;
         d_pmem_rdata = pmem_rdata_c;
         if (pmem_resp_c)
             d_pmem_resp = 1'b1;
     end
-    else if (d_pmem_write & (~(i_pmem_read & (pmem_address_c == i_pmem_address)))) begin
+    else if (d_pmem_write & (~i_pmem_read)) begin
         pmem_write_c = 1'b1;
         pmem_address_c = d_pmem_address;
         pmem_wdata_c = d_pmem_wdata;
