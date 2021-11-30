@@ -22,7 +22,10 @@ module forwarding_unit (
 
     assign arith_funct3 = arith_funct3_t'(funct3);
 
+    logic forwarding_enabled;
+
     always_comb begin
+        forwarding_enabled = 0;
         forwardingmux1_sel = forwardingmux_t'(alumux_out);
         forwardingmux2_sel = forwardingmux_t'(alumux_out);
 
@@ -40,6 +43,12 @@ module forwarding_unit (
                     forwardingmux2_sel = forwardingmux_t'(mem_br_en); 
                 else
                     forwardingmux2_sel = forwardingmux_t'(mem_alu_out);
+                forwardingmux1_sel = forwardingmux_t'(mem_alu_out);
+                forwarding_enabled = 1;
+           end
+           if (EXMEM_rd == IDEX_rs2) begin
+                forwardingmux2_sel = forwardingmux_t'(mem_alu_out);
+                forwarding_enabled = 1;
            end
         end
 
@@ -48,12 +57,14 @@ module forwarding_unit (
             if (~(EXMEM_load_reg && (EXMEM_rd != '0) && (EXMEM_rd == IDEX_rs1))) begin
                 if (MEMWB_rd == IDEX_rs1) begin
                     forwardingmux1_sel = forwardingmux_t'(wb_regfile_mux);
+                    forwarding_enabled = 1;
                 end
             end
 
             if (~(EXMEM_load_reg && (EXMEM_rd != '0) && (EXMEM_rd == IDEX_rs2))) begin
                 if (MEMWB_rd == IDEX_rs2) begin 
                     forwardingmux2_sel = forwardingmux_t'(wb_regfile_mux);
+                    forwarding_enabled = 1;
                 end
             end
         end

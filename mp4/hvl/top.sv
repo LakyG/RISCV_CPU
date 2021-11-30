@@ -28,6 +28,7 @@ logic commit;
 assign commit = dut.cpu.datapath.load_pc;
 
 int timeout = 100_000_000;
+//int timeout = 100_000;
 
 always_comb begin
     itf.halt = 0;
