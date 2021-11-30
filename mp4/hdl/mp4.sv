@@ -49,6 +49,7 @@ logic [size-1:0] i_pmem_wdata;
 logic [size-1:0] i_pmem_rdata;
 logic [3:0] imem_byte_enable;
 logic i_pmem_resp;
+logic [31:0] ishadow_address;
 
 cache #(.s_offset(s_offset)) icache(
     .*,
@@ -82,7 +83,8 @@ cache #(.s_offset(s_offset)) icache(
     .line_i(),
     .address_i(i_pmem_address),
     .read_i(i_pmem_read),
-    .write_i()
+    .write_i(),
+    .shadow_address(ishadow_address)
 );
 
 //dcache
@@ -99,6 +101,7 @@ logic [size-1:0] d_pmem_wdata;
 logic [size-1:0] d_pmem_rdata;
 logic [3:0] dmem_byte_enable;
 logic d_pmem_resp;
+logic [31:0] dshadow_address;
 
 cache #(.s_offset(s_offset)) dcache(
     .*,
@@ -132,7 +135,8 @@ cache #(.s_offset(s_offset)) dcache(
     .line_i(d_pmem_wdata),
     .address_i(d_pmem_address),
     .read_i(d_pmem_read),
-    .write_i(d_pmem_write)
+    .write_i(d_pmem_write),
+    .shadow_address(dshadow_address)
 );
 
 logic [size-1:0] pmem_wdata_c;

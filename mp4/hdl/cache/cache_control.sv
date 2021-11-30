@@ -45,7 +45,7 @@ module cache_control #(
 );
 
 // State Enum
-typedef enum logic[2:0] { IDLE, LOOKUP, WRITEBACK, FETCH, READWRITE
+typedef enum logic[2:0] { IDLE, LOOKUP, WRITEBACK, FETCH, LOOKUPWRITE
 } State;
 
 State state, next_state;
@@ -60,10 +60,17 @@ always_comb begin : NEXT_STATE_LOGIC
 
     case (state)
         IDLE: begin
-            if (mem_read | mem_write)                  next_state = LOOKUP;
+            if (mem_read)                  next_state = LOOKUP;
+            else if (mem_write)
+                next_state = LOOKUPWRITE;
         end
         LOOKUP: begin
-            if (hit)                                   next_state = IDLE;
+            if (hit) begin
+                if (mem_read)
+                    next_state = LOOKUP;
+                else
+                    next_state = IDLE;
+            end
             else if (dirty_out[lru]) next_state = WRITEBACK;
             else                                       next_state = FETCH;
         end
@@ -71,10 +78,12 @@ always_comb begin : NEXT_STATE_LOGIC
             if (ram_resp_o)                            next_state = FETCH;
         end
         FETCH: begin
-            if (ram_resp_o)                            next_state = READWRITE;
+            if (ram_resp_o)                            next_state = IDLE;
         end
-        READWRITE: begin
-            next_state = IDLE;
+        LOOKUPWRITE: begin
+            if (hit)                                   next_state = IDLE;
+            else if (dirty_out[lru]) next_state = WRITEBACK;
+            else                                       next_state = FETCH;
         end
         default: next_state = State'('x);
     endcase
@@ -122,18 +131,18 @@ always_comb begin : OUTPUT_LOGIC
             valid          = 1;
             ram_read_i     = 1;
         end
-        READWRITE: begin
+        LOOKUPWRITE: begin
             // TODO: HIT signal should be high here! (Check to make sure on waveforms and add assertion in TB)
-            mem_resp = 1;
-            lru_load = 1;
-
-            if (mem_write) begin
+            if (hit) begin
+                mem_resp = 1;
+                lru_load = 1;
                 load           = 1;
                 write_data_sel = CPU_DATA;
                 write_en_sel   = CPU_EN;
                 valid          = 1;
                 dirty          = 1;
             end
+
         end
         default: begin
             mem_resp       = 'x;

@@ -105,14 +105,19 @@ rv32i_word expected_nextPC;
 
 //dmem
 store_funct3_t store_funct3;
-assign store_funct3 = store_funct3_t'(EXMEM_if.control_word.funct3);
+rv32i_opcode dmem_opcode;
+logic [31:0] alu_address;
+assign store_funct3 = EXMEM_if.en ? store_funct3_t'(IDEX_if.control_word.funct3) : store_funct3_t'(EXMEM_if.control_word.funct3);
+assign dmem_opcode = EXMEM_if.en ? IDEX_if.control_word.opcode : EXMEM_if.control_word.opcode;
+assign alu_address = EXMEM_if.en ? alu_out : EXMEM_if.alu_out;
 
 //IFID_if
 assign IFID_if.pc_in = pc;
 assign IFID_if.pc_plus4_in = pc + 4;
 assign IFID_if.next_pc_in = pcmux_out;
 assign IFID_if.imem_rdata_in = imem_rdata;
-assign imem_address = pc;
+assign imem_address = load_pc ? pcmux_out : pc;
+//assign imem_address = pc;
 
 //IDEX_if
 assign IDEX_if.pc_in = IFID_if.pc;
@@ -141,10 +146,14 @@ assign EXMEM_if.rd_in = IDEX_if.rd;
 assign EXMEM_if.rs2_out_in = forwardingmux2;
 assign EXMEM_if.alu_out_in = alu_out;
 
-assign dmem_read = EXMEM_if.control_word.dmem_read;
-assign dmem_write = EXMEM_if.control_word.dmem_write;
-assign dmem_address = {EXMEM_if.alu_out[31:2], 2'b0};
-assign dmem_wdata = EXMEM_if.rs2_out;
+// assign dmem_read = EXMEM_if.control_word.dmem_read;
+// assign dmem_write = EXMEM_if.control_word.dmem_write;
+// assign dmem_address = {EXMEM_if.alu_out[31:2], 2'b0};
+
+assign dmem_read = EXMEM_if.en ? IDEX_if.control_word.dmem_read : EXMEM_if.control_word.dmem_read;
+assign dmem_write = EXMEM_if.en ? IDEX_if.control_word.dmem_write : EXMEM_if.control_word.dmem_write;
+assign dmem_address = EXMEM_if.en ? {alu_out[31:2], 2'b0} : {EXMEM_if.alu_out[31:2], 2'b0};
+assign dmem_wdata = EXMEM_if.en ? forwardingmux2 : EXMEM_if.rs2_out;
 
 //MEMWB_if
 assign MEMWB_if.pc_in = EXMEM_if.pc;
@@ -259,6 +268,7 @@ hazard_unit hazard(
 forwarding_unit forwarding(
     .IDEX_rs1(IDEX_if.rs1),
     .IDEX_rs2(IDEX_if.rs2),
+    .funct3(EXMEM_if.control_word.funct3),
     .forwardingmux1_sel(forwardingmux1_sel),
     .forwardingmux2_sel(forwardingmux2_sel),
 
@@ -273,29 +283,29 @@ forwarding_unit forwarding(
 /*****************************************************************************/
 
 // Branch Prediction Result
-always_comb begin
-    expected_nextPC = IDEX_if.next_pc;
+// always_comb begin
+//     expected_nextPC = IDEX.next_pc;
 
-    if (IDEX_if.control_word.opcode == rv32i_types::op_br) begin
-        if (EXMEM_if.br_en_in) begin
-            expected_nextPC = alu_out;
-        end
-        else begin
-            expected_nextPC = IDEX_if.pc_plus4;
-        end
-    end
-    else if (IDEX_if.control_word.opcode == rv32i_types::op_jal) begin
-        expected_nextPC = alu_out;
-    end
-    else if (IDEX_if.control_word.opcode == rv32i_types::op_jalr) begin
-        expected_nextPC = alu_out_mod2;
-    end
+//     if (IDEX_if.control_word.opcode == rv32i_types::op_br) begin
+//         if (EXMEM_if.br_en_in) begin
+//             expected_nextPC = alu_out;
+//         end
+//         else begin
+//             expected_nextPC = IDEX_if.pc_plus4;
+//         end
+//     end
+//     else if (IDEX_if.control_word.opcode == rv32i_types::op_jal) begin
+//         expected_nextPC = alu_out;
+//     end
+//     else if (IDEX_if.control_word.opcode == rv32i_types::op_jalr) begin
+//         expected_nextPC = alu_out_mod2;
+//     end
 
-    predictionFailed = 0;
-    if (IDEX_if.next_pc != expected_nextPC) begin
-        predictionFailed = 1;
-    end
-end
+//     predictionFailed = 0;
+//     if (IDEX.next_pc != expected_nextPC) begin
+//         predictionFailed = 1;
+//     end
+// end
 
 /******************************** Muxes **************************************/
 always_comb begin : MUXES
@@ -390,6 +400,7 @@ always_comb begin : MUXES
         datapath_mux_types::alumux_out:     forwardingmux1_out = IDEX_if.rs1_out;
         datapath_mux_types::mem_alu_out:    forwardingmux1_out = EXMEM_if.alu_out;
         datapath_mux_types::wb_regfile_mux: forwardingmux1_out = rm_out;
+        datapath_mux_types::mem_br_en: forwardingmux1_out = EXMEM_if.br_en;
     endcase
 
     // Forwarding Unit Mux 2
@@ -397,6 +408,7 @@ always_comb begin : MUXES
         datapath_mux_types::alumux_out:     forwardingmux2_out = IDEX_if.rs2_out;
         datapath_mux_types::mem_alu_out:    forwardingmux2_out = EXMEM_if.alu_out;
         datapath_mux_types::wb_regfile_mux: forwardingmux2_out = rm_out;
+        datapath_mux_types::mem_br_en: forwardingmux2_out = EXMEM_if.br_en;
     endcase
     
 
@@ -416,11 +428,11 @@ always_comb begin : MUXES
         default: `BAD_MUX_SEL;
     endcase
 
-    if (EXMEM_if.control_word.opcode == rv32i_types::op_store) begin
+    if (dmem_opcode == rv32i_types::op_store) begin
         unique case (store_funct3)
             sw: dmem_byte_enable = 4'b1111;
             sh: begin
-                unique case (dmem_address[1:0])
+                unique case (alu_address[1:0])
                     2'b00: dmem_byte_enable = 4'b0011;
                     2'b01: dmem_byte_enable = 4'b0110;
                     2'b10: dmem_byte_enable = 4'b1100;
@@ -428,7 +440,7 @@ always_comb begin : MUXES
                 endcase
             end
             sb: begin
-                unique case (dmem_address[1:0])
+                unique case (alu_address[1:0])
                     2'b00: dmem_byte_enable = 4'b0001;
                     2'b01: dmem_byte_enable = 4'b0010;
                     2'b10: dmem_byte_enable = 4'b0100;

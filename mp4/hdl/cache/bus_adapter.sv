@@ -14,13 +14,14 @@ module bus_adapter #(
     output [31:0] mem_rdata,
     input [3:0] mem_byte_enable,
     output logic [(2**s_offset-1):0] mem_byte_enable256,
-    input [31:0] address
+    input [31:0] address,
+    input [31:0] waddress
 );
 localparam num_sets = 2**(s_offset-2);
 
 assign mem_wdata256 = {num_sets{mem_wdata}};
 assign mem_rdata = mem_rdata256[(32*address[s_offset-1:2]) +: 32];
 logic [(2**s_offset-5):0] zeros = '0;
-assign mem_byte_enable256 = {zeros, mem_byte_enable} << (address[s_offset-1:2]*4);
+assign mem_byte_enable256 = {zeros, mem_byte_enable} << (waddress[s_offset-1:2]*4);
 
 endmodule : bus_adapter

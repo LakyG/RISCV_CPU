@@ -36,7 +36,8 @@ module cache #(
     output logic [size-1:0] line_i,
     output logic [31:0] address_i,
     output logic read_i,
-    output logic write_i
+    output logic write_i,
+    output logic [31:0] shadow_address
 );
 
 // Datapath to Control
@@ -59,6 +60,8 @@ logic [s_mask-1:0] mem_byte_enable256;
 
 // Datapath to Bus Adapter
 logic [s_line-1:0] mem_rdata256;
+logic [31:0] mem_address_bus;
+assign shadow_address = mem_address_bus;
 
 cache_control #(.s_offset(s_offset)) control (
     .*,
@@ -84,7 +87,8 @@ cache_datapath #(.s_offset(s_offset)) datapath (
 
 bus_adapter #(.s_offset(s_offset)) bus_adapter (
     .*,
-    .address(mem_address)
+    .address(mem_address_bus),
+    .waddress(mem_address)
 );
 
 endmodule : cache
