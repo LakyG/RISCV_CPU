@@ -60,7 +60,11 @@ module hazard_unit
         //     end 
         // end
 
-        if ((IFID_en & (~IFID_flush)) || missprediction) begin
+        // if ((IFID_en && ~IFID_flush) || missprediction) begin
+        //     pc_en = 1;
+        // end
+
+        if ((imem_resp && ~IDEX_flush && IFID_en) || (imem_resp && missprediction)) begin
             pc_en = 1;
         end
     end
@@ -86,13 +90,68 @@ module hazard_unit
         IFID_flush = 0;
         IDEX_flush = 0;
 
-        if (imem_resp && dmem_resp) begin
-            IFID_en  = 1;
-            IDEX_en  = 1;
-            EXMEM_en = 1;
-            MEMWB_en = 1;
-        end
-        else if (imem_resp && ~dmem_request) begin
+        // if (imem_resp && dmem_resp) begin
+        //     IFID_en  = 1;
+        //     IDEX_en  = 1;
+        //     EXMEM_en = 1;
+        //     MEMWB_en = 1;
+        // end
+        // else if (imem_resp && ~dmem_request) begin
+        //     IFID_en  = 1;
+        //     IDEX_en  = 1;
+        //     EXMEM_en = 1;
+        //     MEMWB_en = 1;
+        // end
+        // else if (~imem_resp && dmem_resp && ~missprediction) begin
+        //     IFID_en  = 1;
+        //     IDEX_en  = 1;
+        //     EXMEM_en = 1;
+        //     MEMWB_en = 1;
+        //     IFID_flush = 1;
+        // end
+        // else if (~imem_resp && dmem_resp && missprediction) begin
+        //     IFID_en  = 1;
+        //     IDEX_en  = 1;
+        //     EXMEM_en = 1;
+        //     MEMWB_en = 1;
+        //     IFID_flush = 1;
+        // end
+        // else if (~imem_resp && ~dmem_request && ~missprediction) begin
+        //     IFID_en  = 1;
+        //     IDEX_en  = 1;
+        //     EXMEM_en = 1;
+        //     MEMWB_en = 1;
+        //     IFID_flush = 1;
+        // end
+        // else if (~imem_resp && ~dmem_request && missprediction) begin
+        //     IFID_en  = 1;
+        //     IDEX_en  = 1;
+        //     EXMEM_en = 1;
+        //     MEMWB_en = 1;
+        //     IFID_flush = 1;
+        // end
+
+        // // Check for Branch Misprediction (MP3-CP2 is static branch prediction)
+        // if (missprediction) begin
+        //     IFID_en = 1;
+        //     IDEX_en = 1;
+        //     EXMEM_en = 1;
+        //     MEMWB_en = 1;
+        //     IFID_flush = 1;
+        //     IDEX_flush = 1;
+        // end
+
+        // // Load-Use Hazard Stall
+        // if (load_use_hazard) begin
+        //     IDEX_en = 1;
+        //     IDEX_flush = 1;
+        // end
+
+        // if (load_use_hazard) begin
+        //     IFID_en = 0;
+        // end
+
+        if (imem_resp && (dmem_resp || ~dmem_request)) begin
             IFID_en  = 1;
             IDEX_en  = 1;
             EXMEM_en = 1;
@@ -105,28 +164,25 @@ module hazard_unit
             MEMWB_en = 1;
             IFID_flush = 1;
         end
-        else if (~imem_resp && ~dmem_request && ~missprediction) begin
-            IFID_en  = 1;
-            IDEX_en  = 1;
-            EXMEM_en = 1;
-            MEMWB_en = 1;
-            IFID_flush = 1;
-        end
 
-        // Check for Branch Misprediction (MP3-CP2 is static branch prediction)
-        if (missprediction) begin
-            IFID_flush = 1;
-            IDEX_flush = 1;
-        end
-
-        // Load-Use Hazard Stall
-        if (load_use_hazard) begin
-            IDEX_flush = 1;
-        end
-
-        if (load_use_hazard) begin
+        if (load_use_hazard && EXMEM_en) begin
             IFID_en = 0;
+            IDEX_en = 1;
+            IDEX_flush = 1;
         end
+
+        if (missprediction && imem_resp && (dmem_resp || ~dmem_request)) begin
+            IFID_en = 1;
+            IDEX_en = 1;
+            IFID_flush = 1;
+            IDEX_flush = 1;
+        end
+
+        // if (dmem_resp) begin
+        //     IFID_en = 1;
+        //     IFID_flush = 1;
+        // end
+        
     end
 
     // Branch Predictor enable

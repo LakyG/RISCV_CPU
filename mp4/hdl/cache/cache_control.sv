@@ -11,7 +11,7 @@ module cache_control #(
     parameter s_line   = 8*s_mask, //256
     parameter num_sets = 2**s_index, //8
     parameter num_ways = 2,
-    parameter width = 1 //log(num_ways)
+    parameter width = $clog2(num_ways) //1 //log(num_ways)
 )
 (
     input clk,
@@ -45,7 +45,7 @@ module cache_control #(
 );
 
 // State Enum
-typedef enum logic[2:0] { IDLE, LOOKUP, WRITEBACK, FETCH, READWRITE
+typedef enum logic[2:0] { IDLE, LOOKUP, WRITEBACK, FETCH, LOOKUPWRITE
 } State;
 
 State state, next_state;
@@ -60,10 +60,17 @@ always_comb begin : NEXT_STATE_LOGIC
 
     case (state)
         IDLE: begin
-            if (mem_read | mem_write)                  next_state = LOOKUP;
+            if (mem_read)                  next_state = LOOKUP;
+            else if (mem_write)
+                next_state = LOOKUPWRITE;
         end
         LOOKUP: begin
-            if (hit)                                   next_state = IDLE;
+            if (hit) begin
+                if (mem_read)
+                    next_state = LOOKUP;
+                else
+                    next_state = IDLE;
+            end
             else if (dirty_out[lru]) next_state = WRITEBACK;
             else                                       next_state = FETCH;
         end
@@ -71,10 +78,12 @@ always_comb begin : NEXT_STATE_LOGIC
             if (ram_resp_o)                            next_state = FETCH;
         end
         FETCH: begin
-            if (ram_resp_o)                            next_state = READWRITE;
+            if (ram_resp_o)                            next_state = IDLE;
         end
-        READWRITE: begin
-            next_state = IDLE;
+        LOOKUPWRITE: begin
+            if (hit)                                   next_state = IDLE;
+            else if (dirty_out[lru]) next_state = WRITEBACK;
+            else                                       next_state = FETCH;
         end
         default: next_state = State'('x);
     endcase
@@ -122,18 +131,18 @@ always_comb begin : OUTPUT_LOGIC
             valid          = 1;
             ram_read_i     = 1;
         end
-        READWRITE: begin
+        LOOKUPWRITE: begin
             // TODO: HIT signal should be high here! (Check to make sure on waveforms and add assertion in TB)
-            mem_resp = 1;
-            lru_load = 1;
-
-            if (mem_write) begin
+            if (hit) begin
+                mem_resp = 1;
+                lru_load = 1;
                 load           = 1;
                 write_data_sel = CPU_DATA;
                 write_en_sel   = CPU_EN;
                 valid          = 1;
                 dirty          = 1;
             end
+
         end
         default: begin
             mem_resp       = 'x;
@@ -149,25 +158,5 @@ always_comb begin : OUTPUT_LOGIC
         end
     endcase
 end
-
-/************************* Performance Counters ******************************/
-// TODO: Remove these during final competition code (Use the synth translate on/off feature)
-    logic [31:0] mem_request_count;
-    logic [31:0] hit_count;
-
-    // Cache Hit Rate
-    always_ff @(posedge clk, posedge rst) begin
-        if (rst) begin
-            mem_request_count <= '0;
-            hit_count <= '0;
-        end
-        else begin
-            if ((mem_read | mem_write) && state == IDLE) mem_request_count <= mem_request_count + 1;
-
-            if (hit && state == LOOKUP) hit_count <= hit_count + 1;
-        end
-    end
-
-/*****************************************************************************/
 
 endmodule : cache_control

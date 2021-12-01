@@ -3,6 +3,8 @@ import control_word::*;
 
 module mp4 #(
     parameter s_offset = 5,
+    parameter s_index = 4,
+    parameter num_ways = 2,
     parameter size = (2**s_offset)*8 //cacheline size
 )
 (
@@ -49,6 +51,7 @@ logic [size-1:0] i_pmem_wdata;
 logic [size-1:0] i_pmem_rdata;
 logic [3:0] imem_byte_enable;
 logic i_pmem_resp;
+logic [31:0] ishadow_address;
 
 cache #(.s_offset(s_offset)) icache(
     .*,
@@ -82,7 +85,8 @@ cache #(.s_offset(s_offset)) icache(
     .line_i(),
     .address_i(i_pmem_address),
     .read_i(i_pmem_read),
-    .write_i()
+    .write_i(),
+    .shadow_address(ishadow_address)
 );
 
 //dcache
@@ -99,8 +103,9 @@ logic [size-1:0] d_pmem_wdata;
 logic [size-1:0] d_pmem_rdata;
 logic [3:0] dmem_byte_enable;
 logic d_pmem_resp;
+logic [31:0] dshadow_address;
 
-cache #(.s_offset(s_offset)) dcache(
+cache #(.s_offset(s_offset), .s_index(s_index), .num_ways(num_ways)) dcache(
     .*,
     // .mem_address(dmem_address),
     // .mem_wdata(dmem_wdata),
@@ -132,7 +137,8 @@ cache #(.s_offset(s_offset)) dcache(
     .line_i(d_pmem_wdata),
     .address_i(d_pmem_address),
     .read_i(d_pmem_read),
-    .write_i(d_pmem_write)
+    .write_i(d_pmem_write),
+    .shadow_address(dshadow_address)
 );
 
 logic [size-1:0] pmem_wdata_c;
@@ -144,6 +150,7 @@ logic pmem_resp_c;
 
 
 arbiter #(.s_offset(s_offset)) arbiter(.*);
+
 cacheline_adaptor #(.s_offset(s_offset)) cacheline_adaptor
 (
     .*,

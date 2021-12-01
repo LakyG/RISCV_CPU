@@ -2,8 +2,8 @@
 
 module lru #(
     parameter s_index = 3, //number of index bits
-    //parameter num_ways = 2, //number of ways
-    parameter width = 1 //log(num_ways)
+    parameter num_ways = 2, //number of ways
+    parameter width = $clog2(num_ways) //1 //log(num_ways)
 )
 (
     clk,
@@ -19,7 +19,7 @@ module lru #(
 
 
 localparam num_sets = 2**s_index;
-localparam num_ways = 2**width;
+//localparam num_ways = 2**width;
 
 input clk;
 input rst;

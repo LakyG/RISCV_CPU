@@ -12,7 +12,7 @@ module cache_datapath #(
     parameter s_line   = 8*s_mask, //256
     parameter num_sets = 2**s_index, //8
     parameter num_ways = 2,
-    parameter width = 1 //log(num_ways)
+    parameter width = $clog2(num_ways) //1 //log(num_ways)
 )
 (
     input clk,
@@ -45,7 +45,8 @@ module cache_datapath #(
     output logic [width-1:0] lru,
     // RAM
     output logic [s_line-1:0] ram_line_i,
-    output logic [31:0] ram_address_i
+    output logic [31:0] ram_address_i,
+    output logic [31:0] mem_address_bus
 );
 
     // Internal Signals
@@ -64,10 +65,15 @@ module cache_datapath #(
     logic [num_ways-1:0] load_val;
 
     logic [s_line-1:0] write_data;
+    logic [s_line-1:0] mem_rdata256_in;
+    logic [s_line-1:0] mem_wdata256_out;
+    logic [s_mask-1:0] mem_byte_enable256_out;
+
 
     logic read;
 
     logic [s_index-1:0] index;
+    logic [s_index-1:0] windex;
     logic [s_tag-1:0] tag_in;
 
     logic [width-1:0] latest_block;
@@ -77,64 +83,71 @@ module cache_datapath #(
     genvar j;
     generate
         for (j = 0; j < num_ways; j++) begin : MODULES
-            array VALID (
+            array #(.s_index(s_index)) VALID (
                 .clk(clk),
                 .rst(rst),
                 .read(read),
                 .load(load_val[j]),
                 .rindex(index),
-                .windex(index),
+                .windex(windex),
                 .datain(valid_val),
                 .dataout(valid[j])
             );
-            array DIRTY (
+            array #(.s_index(s_index)) DIRTY (
                 .clk(clk),
                 .rst(rst),
                 .read(read),
                 .load(load_val[j]),
                 .rindex(index),
-                .windex(index),
+                .windex(windex),
                 .datain(dirty_val),
                 .dataout(dirty_out[j])
             );
-            array #(.width(s_tag)) TAG (
+            array #(.width(s_tag), .s_index(s_index)) TAG (
                 .clk(clk),
                 .rst(rst),
                 .read(read),
                 .load(load_val[j]),
                 .rindex(index),
-                .windex(index),
+                .windex(windex),
                 .datain(tag_in),
                 .dataout(tag[j])
             );
-            data_array #(.s_offset(s_offset)) DATA (
+            data_array #(.s_offset(s_offset), .s_index(s_index)) DATA (
                 .clk(clk),
                 .rst(rst),
                 .read(read),
                 .write_en(write_val[j]),
                 .rindex(index),
-                .windex(index),
+                .windex(windex),
                 .datain(write_data),
                 .dataout(block[j])
             );
         end
 
     endgenerate
-    lru LRU (
+    lru #(.s_index(s_index), .num_ways(num_ways)) LRU (
         .clk(clk),
         .rst(rst),
         .read(read),
         .load(lru_load),
         .rindex(index),
-        .windex(index),
+        .windex(windex),
         .hit_ways(latest_block),
         .evict_ways(lru)
+    );
+
+    cache_reg cache_reg (
+        .*,
+        .load_reg(mem_read | mem_write),
+        .mem_address_in(mem_address)
     );
     
 
     //------------------ Datapath Logic ------------------//
     assign index = mem_address[s_offset +: s_index];
-    assign tag_in = mem_address[s_offset+s_index +: s_tag];
+    assign windex = mem_address_bus[s_offset +: s_index];
+    assign tag_in = mem_address_bus[s_offset+s_index +: s_tag];
 
     assign read = mem_read | mem_write;
 
@@ -157,7 +170,7 @@ module cache_datapath #(
         case (write_en_sel)
             ALL_DIS: write_en = '0;
             ALL_EN:  write_en = '1;
-            CPU_EN:  write_en = mem_byte_enable256;
+            CPU_EN:  write_en = mem_byte_enable256_out;
         endcase
     end
 
@@ -178,7 +191,7 @@ module cache_datapath #(
 
     always_comb begin : WRITE_DATA_SELECT
         case (write_data_sel)
-            CPU_DATA: write_data = mem_wdata256;
+            CPU_DATA: write_data = mem_wdata256_out;
             RAM_DATA: write_data = ram_line_o;
         endcase
     end
@@ -195,7 +208,7 @@ module cache_datapath #(
     end
 
     always_comb begin : READ_BLOCK_SELECT
-        mem_rdata256 = block[latest_block];
+        mem_rdata256_in = block[latest_block];
     end
 
     always_comb begin : DATA_BLOCK_SELECT
