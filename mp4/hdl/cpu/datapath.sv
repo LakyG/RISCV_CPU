@@ -74,9 +74,12 @@ pipeline_registers_if MEMWB_if();
 rv32i_word regfilemux_out;
 rv32i_word rm_out;
 assign rm_out = regfilemux_out;
+rv32i_word regfilemux_out_mem;
 
 //pc
 rv32i_word pc;
+rv32i_word pc_plus4;
+assign pc_plus4 = pc + 4;
 logic load_pc;
 rv32i_word next_pc;
 
@@ -120,10 +123,10 @@ assign alu_address = EXMEM_if.en ? alu_out : EXMEM_if.alu_out;
 
 //IFID_if
 assign IFID_if.pc_in = pc;
-assign IFID_if.pc_plus4_in = pc + 4;
+assign IFID_if.pc_plus4_in = pc_plus4;
 assign IFID_if.next_pc_in = next_pc;
 assign IFID_if.imem_rdata_in = imem_rdata;
-assign imem_address = load_pc ? pcmux_out : pc;
+assign imem_address = load_pc ? next_pc : pc;
 //assign imem_address = pc;
 
 //IDEX_if
@@ -295,7 +298,6 @@ hazard_unit hazard(
 forwarding_unit forwarding(
     .IDEX_rs1(IDEX_if.rs1),
     .IDEX_rs2(IDEX_if.rs2),
-    .funct3(EXMEM_if.control_word.funct3),
     .forwardingmux1_sel(forwardingmux1_sel),
     .forwardingmux2_sel(forwardingmux2_sel),
 
@@ -311,7 +313,7 @@ forwarding_unit forwarding(
 
 // Branch Prediction Result
 always_comb begin
-    expected_next_pc = IDEX_if.next_pc;
+    expected_next_pc = IDEX_if.pc_plus4;
 
     if (IDEX_if.control_word.opcode == rv32i_types::op_br) begin
         if (br_en) begin
@@ -344,7 +346,7 @@ always_comb begin : MUXES
     // warning when an unexpected mux select value occurs
 
     unique case (predicted_direction)
-        datapath_mux_types::nottaken: predicted_pc = IFID_if.pc_plus4_in;
+        datapath_mux_types::nottaken: predicted_pc = pc_plus4;
         datapath_mux_types::taken:    predicted_pc = predicted_target;
         default: `BAD_MUX_SEL;
     endcase
@@ -399,7 +401,6 @@ always_comb begin : MUXES
             
         end
         
-
         // etc.
         default: `BAD_MUX_SEL;
     endcase
@@ -426,28 +427,26 @@ always_comb begin : MUXES
 
     // Forwarding Unit Mux 1
     unique case (forwardingmux1_sel)
-        datapath_mux_types::alumux_out:     forwardingmux1_out = IDEX_if.rs1_out;
-        datapath_mux_types::mem_alu_out:    forwardingmux1_out = EXMEM_if.alu_out;
-        datapath_mux_types::wb_regfile_mux: forwardingmux1_out = rm_out;
-        datapath_mux_types::mem_br_en: forwardingmux1_out = EXMEM_if.br_en;
+        datapath_mux_types::alumux_out:         forwardingmux1_out = IDEX_if.rs1_out;
+        datapath_mux_types::mem_regfile_mux:    forwardingmux1_out = regfilemux_out_mem;
+        datapath_mux_types::wb_regfile_mux:     forwardingmux1_out = rm_out;
     endcase
 
     // Forwarding Unit Mux 2
     unique case (forwardingmux2_sel)
-        datapath_mux_types::alumux_out:     forwardingmux2_out = IDEX_if.rs2_out;
-        datapath_mux_types::mem_alu_out:    forwardingmux2_out = EXMEM_if.alu_out;
-        datapath_mux_types::wb_regfile_mux: forwardingmux2_out = rm_out;
-        datapath_mux_types::mem_br_en: forwardingmux2_out = EXMEM_if.br_en;
+        datapath_mux_types::alumux_out:         forwardingmux2_out = IDEX_if.rs2_out;
+        datapath_mux_types::mem_regfile_mux:    forwardingmux2_out = regfilemux_out_mem;
+        datapath_mux_types::wb_regfile_mux:     forwardingmux2_out = rm_out;
     endcase
-    
 
-    // unique case (marmux_sel)
-    //     marmux::pc_out: marmux_out = pc_out;
-    //     marmux::alu_out: marmux_out = alu_out;
-
-    //     // etc.
-    //     default: `BAD_MUX_SEL;
-    // endcase
+    // MEM Stage Regfile Mux
+    unique case (EXMEM_if.control_word.regfilemux_sel)
+        regfilemux::alu_out:    regfilemux_out_mem = EXMEM_if.alu_out;
+        regfilemux::br_en:      regfilemux_out_mem = {'0, EXMEM_if.br_en}; 
+        regfilemux::u_imm:      regfilemux_out_mem = EXMEM_if.u_imm;  
+        regfilemux::pc_plus4:   regfilemux_out_mem = EXMEM_if.pc_plus4;
+        default:                regfilemux_out_mem = EXMEM_if.alu_out;
+    endcase
 
     unique case (IDEX_if.control_word.cmpmux_sel)
         cmpmux::rs2_out: cmpmux_out = forwardingmux2;
@@ -510,7 +509,6 @@ end
                 br_j_instrs <= br_j_instrs + 1;
             end
 
-            // TODO: This missprediction signal might change after Branch Prediction implementation
             if (missprediction && IFID_if.en) begin
                 br_j_misses <= br_j_misses + 1; 
             end
