@@ -3,9 +3,11 @@ import control_word::*;
 
 module mp4 #(
     parameter s_offset = 5,
-    parameter s_index = 4,
-    parameter num_ways = 2,
-    parameter size = (2**s_offset)*8 //cacheline size
+    parameter size = (2**s_offset)*8, //cacheline size
+    parameter i_s_index = 3,
+    parameter i_num_ways = 2,
+    parameter d_s_index = 3,
+    parameter d_num_ways = 2
 )
 (
     input clk,
@@ -53,7 +55,7 @@ logic [3:0] imem_byte_enable;
 logic i_pmem_resp;
 logic [31:0] ishadow_address;
 
-cache #(.s_offset(s_offset)) icache(
+cache #(.s_offset(s_offset), .s_index(i_s_index), .num_ways(i_num_ways)) icache(
     .*,
     // .mem_address(imem_address),
     // .mem_wdata('0),
@@ -105,7 +107,7 @@ logic [3:0] dmem_byte_enable;
 logic d_pmem_resp;
 logic [31:0] dshadow_address;
 
-cache #(.s_offset(s_offset), .s_index(s_index), .num_ways(num_ways)) dcache(
+cache #(.s_offset(s_offset), .s_index(d_s_index), .num_ways(d_num_ways)) dcache(
     .*,
     // .mem_address(dmem_address),
     // .mem_wdata(dmem_wdata),

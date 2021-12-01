@@ -32,10 +32,7 @@ module hazard_unit
     output logic IFID_flush,
     output logic IDEX_flush,
 
-    output logic predict_en,
-
-    // Performance Counter
-    output logic missprediction
+    output logic predict_en
 );
 
     logic dmem_request;

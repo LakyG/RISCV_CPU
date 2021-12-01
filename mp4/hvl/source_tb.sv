@@ -30,7 +30,15 @@ end
 
 /************************* Performance Counters ******************************/
 
-logic [31:0] instr_count;
+// Clock Cycles
+int clock_cycles;
+always_ff @(posedge itf.clk, posedge itf.rst) begin
+    if (itf.rst) clock_cycles <= '0;
+    else clock_cycles <= clock_cycles + 1;
+end
+
+// Instruction Counter
+int instr_count;
 always_ff @(posedge itf.clk, posedge itf.rst) begin
     if (itf.rst) instr_count <= '0;
     else begin
@@ -38,14 +46,11 @@ always_ff @(posedge itf.clk, posedge itf.rst) begin
     end
 end
 
-logic [31:0] i_mem_request_count;
-logic [31:0] i_hit_count;
-logic [31:0] d_mem_request_count;
-logic [31:0] d_hit_count;
-
 //I-Cache Hit Rate
+int i_mem_request_count;
+int i_hit_count;
 always_ff @(posedge itf.clk, posedge itf.rst) begin
-    if (dut.cpu.rst) begin
+    if (itf.rst) begin
         i_mem_request_count <= '0;
         i_hit_count <= '0;
     end
@@ -63,8 +68,10 @@ always_ff @(posedge itf.clk, posedge itf.rst) begin
 end
 
 //D-Cache Hit Rate
+int d_mem_request_count;
+int d_hit_count;
 always_ff @(posedge itf.clk, posedge itf.rst) begin
-    if (dut.cpu.rst) begin
+    if (itf.rst) begin
         d_mem_request_count <= '0;
         d_hit_count <= '0;
     end
@@ -83,6 +90,64 @@ always_ff @(posedge itf.clk, posedge itf.rst) begin
     end
 end
 
+// Branch-Jump Prediction Accuracy
+int br_instrs;
+int j_instrs;
+int br_misses;
+int j_misses;
+int br_j_instrs;
+int br_j_misses;
+always_ff @(posedge itf.clk, posedge itf.rst) begin
+    if (itf.rst) begin
+        br_instrs <= '0;
+        j_instrs <= '0;
+        br_misses <= '0;
+        j_misses <= '0;
+    end
+    else begin
+        if ((dut.cpu.datapath.IFID_if.opcode == rv32i_types::op_br) && dut.cpu.datapath.IDEX_if.en) begin
+            br_instrs <= br_instrs + 1;
+        end
+        if ((dut.cpu.datapath.IFID_if.opcode == rv32i_types::op_jal ||
+             dut.cpu.datapath.IFID_if.opcode == rv32i_types::op_jalr) && dut.cpu.datapath.IDEX_if.en) begin
+            j_instrs <= j_instrs + 1;
+        end
+
+        if (dut.cpu.datapath.predictionFailed && dut.cpu.datapath.IFID_if.en &&
+            dut.cpu.datapath.IDEX_if.control_word.opcode == rv32i_types::op_br) begin
+            br_misses <= br_misses + 1;
+        end
+        if (dut.cpu.datapath.predictionFailed && dut.cpu.datapath.IFID_if.en &&
+            (dut.cpu.datapath.IFID_if.opcode == rv32i_types::op_jal ||
+             dut.cpu.datapath.IFID_if.opcode == rv32i_types::op_jalr)) begin
+            j_misses <= j_misses + 1;
+        end
+    end
+end
+assign br_j_instrs = br_instrs + j_instrs;
+assign br_j_misses = br_misses + j_misses;
+
+// Stall & Bubble Counter
+int stall_count;
+int bubble_count;
+always_ff @(posedge itf.clk, posedge itf.rst) begin
+    if (itf.rst) begin
+        stall_count  <= '0;
+        bubble_count <= '0;
+    end
+    else begin
+        // Stalls
+        if (~dut.cpu.datapath.IFID_if.en && ~dut.cpu.datapath.IDEX_if.en) begin
+            stall_count <= stall_count + 1;
+        end
+
+        // Bubbles
+        if (~dut.cpu.datapath.IFID_if.en && dut.cpu.datapath.IDEX_if.en) begin
+            bubble_count <= bubble_count + 1;
+        end
+    end    
+end
+
 /*****************************************************************************/
 
 /**************************** Halting Conditions *****************************/
@@ -90,13 +155,22 @@ int timeout = 100_000_000;
 
 always @(posedge tb_itf.clk) begin
     if (rvfi.halt) begin
-        $display("Number of Cycles: %d", dut.cpu.datapath.clock_cycles);
+        $display("Number of Cycles: %d", clock_cycles);
         $display("Number of Instructions: %d", instr_count);
-        $display("Branch Prediction Accuracy: %.1f%%",
-            ((dut.cpu.datapath.br_j_instrs - dut.cpu.datapath.br_j_misses)*1.0 / dut.cpu.datapath.br_j_instrs) * 100);
-        $display("I-Cache Hit Rate: %.1f%%",
+        $display("Cycles Per Instruction (CPI): %.2f", clock_cycles*1.0 / instr_count);
+        $display("Number of Stalls: %d --> ", stall_count, "Percentage of Total: %.1f%%",
+            ((stall_count*1.0) / clock_cycles) * 100);
+        $display("Number of Bubbles: %d --> ", bubble_count, "Percentage of Total: %.1f%%",
+            ((bubble_count*1.0) / clock_cycles) * 100);
+        $display("Number of BR Instructions: %d --> ", br_instrs, "BR Prediction Accuracy: %.1f%%", 
+            ((br_instrs - br_misses)*1.0 / br_instrs) * 100);
+        $display("Number of J Instructions: %d --> ", j_instrs, "J Prediction Accuracy: %.1f%%", 
+            ((j_instrs - j_misses)*1.0 / j_instrs) * 100);
+        $display("Total Branch Prediction Accuracy: %.1f%%",
+            ((br_j_instrs - br_j_misses)*1.0 / br_j_instrs) * 100);
+        $display("Number of I-Requests: %d --> ", i_mem_request_count, "I-Cache Hit Rate: %.1f%%",
             (i_hit_count*1.0 / i_mem_request_count) * 100);
-        $display("D-Cache Hit Rate: %.1f%%",
+        $display("Number of D-Requests: %d --> ", d_mem_request_count, "D-Cache Hit Rate: %.1f%%",
             (d_hit_count*1.0 / d_mem_request_count) * 100);
         
         $finish;

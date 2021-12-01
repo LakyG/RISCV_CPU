@@ -85,7 +85,6 @@ rv32i_word next_pc;
 
 //hazard
 logic predict_en;
-logic missprediction;
 
 //alu
 rv32i_word alumux1_out, alumux2_out;
@@ -217,6 +216,7 @@ pc_register PC(
     .out (pc)
 );
 
+// Branch Prediction
 local_prediction_table #(.s_index(PREDICTOR_SIZE)) bpt (
     .*,
     .predict_en(predict_en),
@@ -290,9 +290,7 @@ hazard_unit hazard(
     .MEMWB_en(MEMWB_if.en),
     .IFID_flush(IFID_if.flush),
     .IDEX_flush(IDEX_if.flush),
-    .predict_en(predict_en),
-
-    .missprediction(missprediction)
+    .predict_en(predict_en)
 );
 
 forwarding_unit forwarding(
@@ -484,38 +482,6 @@ always_comb begin : MUXES
     end
 
 end
-/*****************************************************************************/
-
-/************************* Performance Counters ******************************/
-// TODO: Remove these during final competition code (Use the synth translate on/off feature)
-    logic [31:0] clock_cycles;
-    logic [31:0] br_j_instrs;
-    logic [31:0] br_j_misses;
-
-    // Clock Cycles
-    always_ff @(posedge clk, posedge rst) begin
-        if (rst) clock_cycles <= '0;
-        else clock_cycles <= clock_cycles + 1;
-    end
-
-    // Branch-Jump Prediction Accuracy
-    always_ff @(posedge clk, posedge rst) begin
-        if (rst) begin
-            br_j_instrs <= '0;
-            br_j_misses <= '0;
-        end
-        else begin
-            if ((IFID_if.opcode == op_br || IFID_if.opcode == op_jal || IFID_if.opcode == op_jalr) && IDEX_if.en) begin
-                br_j_instrs <= br_j_instrs + 1;
-            end
-
-            if (missprediction && IFID_if.en) begin
-                br_j_misses <= br_j_misses + 1; 
-            end
-        end
-    end
-
-
 /*****************************************************************************/
 
 endmodule : datapath
