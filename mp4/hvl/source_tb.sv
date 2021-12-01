@@ -28,12 +28,79 @@ initial begin
     tb_itf.rst = 1'b0;
 end
 
+/************************* Performance Counters ******************************/
+
+logic [31:0] instr_count;
+always_ff @(posedge itf.clk, posedge itf.rst) begin
+    if (itf.rst) instr_count <= '0;
+    else begin
+        if (rvfi.commit) instr_count <= instr_count + 1;
+    end
+end
+
+logic [31:0] i_mem_request_count;
+logic [31:0] i_hit_count;
+logic [31:0] d_mem_request_count;
+logic [31:0] d_hit_count;
+
+//I-Cache Hit Rate
+always_ff @(posedge itf.clk, posedge itf.rst) begin
+    if (dut.cpu.rst) begin
+        i_mem_request_count <= '0;
+        i_hit_count <= '0;
+    end
+    else begin
+        if ((dut.icache.control.mem_read | dut.icache.control.mem_write) &&
+                (dut.icache.control.state == dut.icache.control.IDLE ||
+                dut.icache.control.state == dut.icache.control.LOOKUP) &&
+                ~dut.arbiter.pmem_read_c && ~dut.arbiter.pmem_write_c)
+            i_mem_request_count <= i_mem_request_count + 1;
+
+        if (dut.icache.control.hit && dut.icache.control.state == dut.dcache.control.LOOKUP &&
+                ~dut.arbiter.pmem_read_c && ~dut.arbiter.pmem_write_c)
+            i_hit_count <= i_hit_count + 1;
+    end
+end
+
+//D-Cache Hit Rate
+always_ff @(posedge itf.clk, posedge itf.rst) begin
+    if (dut.cpu.rst) begin
+        d_mem_request_count <= '0;
+        d_hit_count <= '0;
+    end
+    else begin
+        if ((dut.dcache.control.mem_read | dut.dcache.control.mem_write) &&
+                (dut.dcache.control.state == dut.dcache.control.IDLE ||
+                dut.dcache.control.state == dut.dcache.control.LOOKUP) &&
+                ~dut.arbiter.pmem_read_c && ~dut.arbiter.pmem_write_c)
+            d_mem_request_count <= d_mem_request_count + 1;
+
+        if (dut.dcache.control.hit &&
+                (dut.dcache.control.state == dut.dcache.control.LOOKUP ||
+                dut.dcache.control.state == dut.dcache.control.LOOKUPWRITE) &&
+                ~dut.arbiter.pmem_read_c && ~dut.arbiter.pmem_write_c)
+            d_hit_count <= d_hit_count + 1;
+    end
+end
+
+/*****************************************************************************/
+
 /**************************** Halting Conditions *****************************/
-int timeout = 100000000;
+int timeout = 100_000_000;
 
 always @(posedge tb_itf.clk) begin
-    if (rvfi.halt)
+    if (rvfi.halt) begin
+        $display("Number of Cycles: %d", dut.cpu.datapath.clock_cycles);
+        $display("Number of Instructions: %d", instr_count);
+        $display("Branch Prediction Accuracy: %.1f%%",
+            ((dut.cpu.datapath.br_j_instrs - dut.cpu.datapath.br_j_misses)*1.0 / dut.cpu.datapath.br_j_instrs) * 100);
+        $display("I-Cache Hit Rate: %.1f%%",
+            (i_hit_count*1.0 / i_mem_request_count) * 100);
+        $display("D-Cache Hit Rate: %.1f%%",
+            (d_hit_count*1.0 / d_mem_request_count) * 100);
+        
         $finish;
+    end
     if (timeout == 0) begin
         $display("TOP: Timed out");
         $finish;

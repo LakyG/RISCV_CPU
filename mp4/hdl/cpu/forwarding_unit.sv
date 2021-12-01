@@ -5,7 +5,7 @@ module forwarding_unit (
     // EX Stage
     input rv32i_reg IDEX_rs1,
     input rv32i_reg IDEX_rs2,
-    logic [2:0] funct3,
+    input logic [2:0] funct3,
     output forwardingmux_t forwardingmux1_sel,
     output forwardingmux_t forwardingmux2_sel,
 
@@ -29,27 +29,22 @@ module forwarding_unit (
         forwardingmux1_sel = forwardingmux_t'(alumux_out);
         forwardingmux2_sel = forwardingmux_t'(alumux_out);
 
-
         // MEM Stage Forwarding
         if (EXMEM_load_reg && (EXMEM_rd != '0)) begin
-           if (EXMEM_rd == IDEX_rs1) begin
+            if (EXMEM_rd == IDEX_rs1) begin
+                forwarding_enabled = 1;
                 if ((arith_funct3 == slt) | (arith_funct3 == sltu))
-                    forwardingmux1_sel = forwardingmux_t'(mem_br_en); 
+                    forwardingmux1_sel = forwardingmux_t'(mem_br_en);
                 else
                     forwardingmux1_sel = forwardingmux_t'(mem_alu_out); 
-           end
-           if (EXMEM_rd == IDEX_rs2) begin
-               if ((arith_funct3 == slt) | (arith_funct3 == sltu))
+            end
+            if (EXMEM_rd == IDEX_rs2) begin
+                forwarding_enabled = 1;
+                if ((arith_funct3 == slt) | (arith_funct3 == sltu))
                     forwardingmux2_sel = forwardingmux_t'(mem_br_en); 
                 else
                     forwardingmux2_sel = forwardingmux_t'(mem_alu_out);
-                forwardingmux1_sel = forwardingmux_t'(mem_alu_out);
-                forwarding_enabled = 1;
-           end
-           if (EXMEM_rd == IDEX_rs2) begin
-                forwardingmux2_sel = forwardingmux_t'(mem_alu_out);
-                forwarding_enabled = 1;
-           end
+            end
         end
 
         // WB Stage Forwarding

@@ -3,6 +3,8 @@ import control_word::*;
 
 module mp4 #(
     parameter s_offset = 5,
+    parameter s_index = 4,
+    parameter num_ways = 2,
     parameter size = (2**s_offset)*8 //cacheline size
 )
 (
@@ -103,7 +105,7 @@ logic [3:0] dmem_byte_enable;
 logic d_pmem_resp;
 logic [31:0] dshadow_address;
 
-cache #(.s_offset(s_offset)) dcache(
+cache #(.s_offset(s_offset), .s_index(s_index), .num_ways(num_ways)) dcache(
     .*,
     // .mem_address(dmem_address),
     // .mem_wdata(dmem_wdata),
@@ -148,6 +150,7 @@ logic pmem_resp_c;
 
 
 arbiter #(.s_offset(s_offset)) arbiter(.*);
+
 cacheline_adaptor #(.s_offset(s_offset)) cacheline_adaptor
 (
     .*,

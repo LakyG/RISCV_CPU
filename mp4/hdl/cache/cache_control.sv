@@ -11,7 +11,7 @@ module cache_control #(
     parameter s_line   = 8*s_mask, //256
     parameter num_sets = 2**s_index, //8
     parameter num_ways = 2,
-    parameter width = 1 //log(num_ways)
+    parameter width = $clog2(num_ways) //1 //log(num_ways)
 )
 (
     input clk,
@@ -158,25 +158,5 @@ always_comb begin : OUTPUT_LOGIC
         end
     endcase
 end
-
-/************************* Performance Counters ******************************/
-// TODO: Remove these during final competition code (Use the synth translate on/off feature)
-    logic [31:0] mem_request_count;
-    logic [31:0] hit_count;
-
-    // Cache Hit Rate
-    always_ff @(posedge clk, posedge rst) begin
-        if (rst) begin
-            mem_request_count <= '0;
-            hit_count <= '0;
-        end
-        else begin
-            if ((mem_read | mem_write) && state == IDLE) mem_request_count <= mem_request_count + 1;
-
-            if (hit && state == LOOKUP) hit_count <= hit_count + 1;
-        end
-    end
-
-/*****************************************************************************/
 
 endmodule : cache_control

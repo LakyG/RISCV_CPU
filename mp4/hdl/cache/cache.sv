@@ -13,7 +13,7 @@ module cache #(
     parameter s_line   = 8*s_mask, //256
     parameter num_sets = 2**s_index, //8
     parameter num_ways = 2,
-    parameter width = 1 //log(num_ways)
+    parameter width = $clog2(num_ways) //1 //log(num_ways)
 )
 (
     input clk,
@@ -63,7 +63,7 @@ logic [s_line-1:0] mem_rdata256;
 logic [31:0] mem_address_bus;
 assign shadow_address = mem_address_bus;
 
-cache_control #(.s_offset(s_offset)) control (
+cache_control #(.s_offset(s_offset), .s_index(s_index), .num_ways(num_ways)) control (
     .*,
     // Input from RAM
     .ram_resp_o(resp_o),
@@ -72,7 +72,7 @@ cache_control #(.s_offset(s_offset)) control (
     .ram_write_i(write_i)
 );
 
-cache_datapath #(.s_offset(s_offset)) datapath (
+cache_datapath #(.s_offset(s_offset), .s_index(s_index), .num_ways(num_ways)) datapath (
     .*,
     // Input from RAM
     .ram_line_o(line_o),

@@ -12,7 +12,7 @@ module cache_datapath #(
     parameter s_line   = 8*s_mask, //256
     parameter num_sets = 2**s_index, //8
     parameter num_ways = 2,
-    parameter width = 1 //log(num_ways)
+    parameter width = $clog2(num_ways) //1 //log(num_ways)
 )
 (
     input clk,
@@ -83,7 +83,7 @@ module cache_datapath #(
     genvar j;
     generate
         for (j = 0; j < num_ways; j++) begin : MODULES
-            array VALID (
+            array #(.s_index(s_index)) VALID (
                 .clk(clk),
                 .rst(rst),
                 .read(read),
@@ -93,7 +93,7 @@ module cache_datapath #(
                 .datain(valid_val),
                 .dataout(valid[j])
             );
-            array DIRTY (
+            array #(.s_index(s_index)) DIRTY (
                 .clk(clk),
                 .rst(rst),
                 .read(read),
@@ -103,7 +103,7 @@ module cache_datapath #(
                 .datain(dirty_val),
                 .dataout(dirty_out[j])
             );
-            array #(.width(s_tag)) TAG (
+            array #(.width(s_tag), .s_index(s_index)) TAG (
                 .clk(clk),
                 .rst(rst),
                 .read(read),
@@ -113,7 +113,7 @@ module cache_datapath #(
                 .datain(tag_in),
                 .dataout(tag[j])
             );
-            data_array #(.s_offset(s_offset)) DATA (
+            data_array #(.s_offset(s_offset), .s_index(s_index)) DATA (
                 .clk(clk),
                 .rst(rst),
                 .read(read),
@@ -126,7 +126,7 @@ module cache_datapath #(
         end
 
     endgenerate
-    lru LRU (
+    lru #(.s_index(s_index), .num_ways(num_ways)) LRU (
         .clk(clk),
         .rst(rst),
         .read(read),
@@ -136,6 +136,7 @@ module cache_datapath #(
         .hit_ways(latest_block),
         .evict_ways(lru)
     );
+
     cache_reg cache_reg (
         .*,
         .load_reg(mem_read | mem_write),
