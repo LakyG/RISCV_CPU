@@ -2,7 +2,7 @@ import rv32i_types::*;
 import control_word::*;
 
 module cpu # (
-    parameter predict_s_index = 7;
+    parameter predict_s_index = 7
 )
 (
     input clk,

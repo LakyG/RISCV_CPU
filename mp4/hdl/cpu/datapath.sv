@@ -4,7 +4,7 @@ import rv32i_types::*;
 import datapath_mux_types::*;
 
 module datapath # (
-    parameter predict_s_index = 7;
+    parameter predict_s_index = 7
 )
 (
     input clk,
