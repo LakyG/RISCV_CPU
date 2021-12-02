@@ -111,13 +111,13 @@ always_comb begin : OUTPUT_LOGIC
                 mem_resp = 1;
                 lru_load = 1;
                 
-                if (mem_write) begin
-                    load           = 1;
-                    write_data_sel = CPU_DATA;
-                    write_en_sel   = CPU_EN;
-                    valid          = 1;
-                    dirty          = 1;
-                end
+                // if (mem_write) begin
+                //     load           = 1;
+                //     write_data_sel = CPU_DATA;
+                //     write_en_sel   = CPU_EN;
+                //     valid          = 1;
+                //     dirty          = 1;
+                // end
             end
         end
         WRITEBACK: begin

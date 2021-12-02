@@ -177,16 +177,28 @@ module cache_datapath #(
     always_comb begin : DEMUXES
         dirty_val = dirty_in;
         valid_val = valid_in;
-        for (int i = 0; i < num_ways; i++) begin
-            if (i == block_sel) begin
-                write_val[i] = write_en;
-                load_val[i] = load;
+        unique case (load)
+            1'b1: begin
+                for (int i = 0; i < num_ways; i++) begin
+                    if (i == block_sel) begin
+                        write_val[i] = write_en;
+                        load_val[i] = load;
+                    end
+                    else begin
+                        write_val[i] = '0;
+                        load_val[i] = 0;
+                    end
+                end
             end
-            else begin
-                write_val[i] = '0;
-                load_val[i] = 0;
+            1'b0: begin
+                write_val = '0;
+                load_val = '0;
             end
-        end
+            default: begin
+                write_val = '0;
+                load_val = '0;
+            end
+        endcase
     end
 
     always_comb begin : WRITE_DATA_SELECT

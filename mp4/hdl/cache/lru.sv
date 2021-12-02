@@ -35,6 +35,7 @@ logic [num_ways-2:0] data [num_sets-1:0] /* synthesis ramstyle = "logic" */;
 logic [num_ways-2:0] datain;
 logic [num_ways-2:0] rdataout;
 logic [num_ways-2:0] wdataout;
+logic [width-1:0] evict;
 //assign evict_ways = _dataout;
 
 always_comb begin
@@ -42,12 +43,12 @@ always_comb begin
     rdataout = data[rindex];
     datain = wdataout;
     //dataout = '0;
-    evict_ways = '0;
+    evict = '0;
 
     if (read) begin
         for (int i = 0; i < width; i++) begin
-                automatic int index = i ? 2**i - 1 + evict_ways[width-i +: width-1] : 0;
-                evict_ways[width-1-i] = rdataout[index];            
+                automatic int index = i ? 2**i - 1 + evict[width-i +: width-1] : 0;
+                evict[width-1-i] = rdataout[index];            
         end
     end
     if (load) begin
@@ -63,10 +64,11 @@ begin
     if (rst) begin
         for (int i = 0; i < num_sets; ++i)
             data[i] <= '0;
+        evict_ways <= '0;
     end
     else begin
-        // if (read)
-        //     dataout <= (load  & (rindex == windex)) ? datain : data[rindex];
+        if (read)
+            evict_ways <= evict;
 
         if(load)
             data[windex] <= datain;
