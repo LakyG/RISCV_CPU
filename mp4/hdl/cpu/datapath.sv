@@ -313,20 +313,14 @@ forwarding_unit forwarding(
 always_comb begin
     expected_next_pc = IDEX_if.pc_plus4;
 
-    if (IDEX_if.control_word.opcode == rv32i_types::op_br) begin
-        if (br_en) begin
-            expected_next_pc = alu_out;
+    unique case (IDEX_if.control_word.opcode)
+        rv32i_types::op_br: begin
+            if (br_en)          expected_next_pc = alu_out;
         end
-        else begin
-            expected_next_pc = IDEX_if.pc_plus4;
-        end
-    end
-    else if (IDEX_if.control_word.opcode == rv32i_types::op_jal) begin
-        expected_next_pc = alu_out;
-    end
-    else if (IDEX_if.control_word.opcode == rv32i_types::op_jalr) begin
-        expected_next_pc = alu_out_mod2;
-    end
+        rv32i_types::op_jal:    expected_next_pc = alu_out;
+        rv32i_types::op_jalr:   expected_next_pc = alu_out_mod2;
+        default: expected_next_pc = IDEX_if.pc_plus4;
+    endcase 
 
     predictionFailed = 0;
     if (IDEX_if.next_pc != expected_next_pc) begin

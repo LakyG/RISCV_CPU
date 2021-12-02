@@ -6,7 +6,7 @@ module mp4 #(
     parameter size = (2**s_offset)*8, //cacheline size
     parameter i_s_index = 3,
     parameter i_num_ways = 2,
-    parameter d_s_index = 3,
+    parameter d_s_index = 4,
     parameter d_num_ways = 2
 )
 (
