@@ -3,7 +3,9 @@
 import rv32i_types::*;
 import datapath_mux_types::*;
 
-module datapath
+module datapath # (
+    parameter predict_s_index = 7;
+)
 (
     input clk,
     input rst,
@@ -41,8 +43,6 @@ module datapath
     // input branch_funct3_t cmpop,
     // output logic [1:0] addr_2bit
 );
-
-localparam PREDICTOR_SIZE = 7; // Number of bits to use for Branch Predictor sets
 
 /******************* Signals Needed for RVFI Monitor *************************/
 rv32i_word pcmux_out;
@@ -217,7 +217,7 @@ pc_register PC(
 );
 
 // Branch Prediction
-local_prediction_table #(.s_index(PREDICTOR_SIZE)) bpt (
+local_prediction_table #(.s_index(predict_s_index)) bpt (
     .*,
     .predict_en(predict_en),
     .curr_pc(pc),
@@ -227,7 +227,7 @@ local_prediction_table #(.s_index(PREDICTOR_SIZE)) bpt (
     .predicted_direction(predicted_direction)
 );
 
-target_buffer #(.s_index(PREDICTOR_SIZE)) btb (
+target_buffer #(.s_index(predict_s_index)) btb (
     .*,
     .predict_en(predict_en),
     .curr_pc(pc),

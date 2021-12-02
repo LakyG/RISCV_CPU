@@ -1,7 +1,9 @@
 import rv32i_types::*;
 import control_word::*;
 
-module cpu
+module cpu # (
+    parameter predict_s_index = 7;
+)
 (
     input clk,
     input rst,
@@ -64,7 +66,7 @@ assign imem_read = 1;
 // );
 
 // Keep datapath named `datapath` for RVFI Monitor
-datapath datapath(
+datapath #(.predict_s_index(predict_s_index)) datapath(
     .clk(clk),
     .rst(rst),
 
