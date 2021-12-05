@@ -1,0 +1,22 @@
+{
+	"system" : {
+		"platform" : "linux64",
+		"os_name" : "CentOS Linux",
+		"os_version" : ""
+	},
+	"error" : {
+		"executable" : "quartus_pow",
+		"comment" : "none",
+		"error_message" : "total_bits == 1",
+		"source_file" : "/quartus/power/putil/putil_vcd_parser_event_handler_stats_collector.cpp",
+		"line" : "487",
+		"stack_trace" : "\t0x7fba2f3c143b: power_putil + 0x4943b (_ZN46PUTIL_VCD_PARSER_EVENT_HANDLER_STATS_COLLECTOR27handle_binary_vector_changeEPcS0_ + 0x3ab)\n\t0x7fba2f3d0dab: power_putil + 0x58dab (_Z24putil_vcd_parser_yyparseP9FlexLexer + 0x9db)\n\t0x7fba2f3e0740: power_putil + 0x68740 (_ZN21PUTIL_VCD_READER_MAIN37load_signal_statistics_from_vcd_filesEP13PUTIL_SA_DATA + 0x640)\n\t0x7fba303d0c8a: power_pan + 0x78c8a (_ZN16PAN_UTILITY_IMPL28load_putil_sa_data_from_fileEv + 0x732)\n\t0x7fba303d4cd1: power_pan + 0x7ccd1 (_ZN16PAN_UTILITY_IMPL12load_sa_dataEbbb + 0x49)\n\t0x7fba303d4fea: power_pan + 0x7cfea (_ZN11PAN_UTILITY12load_sa_dataEbbb + 0x16)\n\t0x7fba30374695: power_pan + 0x1c695 (_ZN13PAN_MAIN_IMPL8run_flowEv + 0x135)\n\t0x7fba303707bb: power_pan + 0x187bb (_ZN8PAN_MAIN8run_flowEv + 0x1d)\n\t0x7fba30395070: power_pan + 0x3d070 (_Z9pan_startP13QCU_FRAMEWORK + 0x18)\n\t   0x4090dc: quartus_pow + 0x90dc (_ZN14QPOW_FRAMEWORK7executeEv + 0x3c)\n\t0x7fba2237275b: comp_qexe + 0x1c75b (_Z18qexe_standard_mainP14QEXE_FRAMEWORKPPK22QEXE_OPTION_DEFINITIONiPPKc + 0x888)\n\t   0x409414: quartus_pow + 0x9414 (_Z9qpow_mainiPPKc + 0x74)\n\t0x7fba0405a720: ccl_msg + 0x40720 (_Z15msg_main_threadPv + 0x10)\n\t0x7fba013b202c: ccl_thr + 0x602c (thr_final_wrapper + 0xc)\n\t0x7fba0405a7df: ccl_msg + 0x407df (_Z18msg_thread_wrapperPFPvS_ES_ + 0x62)\n\t0x7fba01a23559: ccl_mem + 0xa559 (_Z18mem_thread_wrapperPFPvS_ES_ + 0x99)\n\t0x7fba017f0f92: ccl_err + 0x8f92 (_Z18err_thread_wrapperPFPvS_ES_ + 0x27)\n\t0x7fba013b23f2: ccl_thr + 0x63f2 (thr_thread_wrapper + 0x15)\n\t0x7fba0405c7e2: ccl_msg + 0x427e2 (_Z12msg_exe_mainiPPKcPFiiS1_E + 0xa3)\n\t0x7fb9fc950555: c.so.6 + 0x22555 (__libc_start_main + 0xf5)\n\t   0x408195: quartus_pow + 0x8195\n",
+		"subsystem" : "PUTIL"
+	},
+	"quartus" : {
+		"quartus_bits" : "64",
+		"version" : "18.1.0",
+		"build" : "625",
+		"edition" : "Standard Edition"
+	}
+}

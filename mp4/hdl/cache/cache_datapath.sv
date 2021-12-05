@@ -81,51 +81,220 @@ module cache_datapath #(
 
     //------------------ Array Module Instantiations ------------------//
     genvar j;
+    
     generate
-        for (j = 0; j < num_ways; j++) begin : MODULES
-            array #(.s_index(s_index)) VALID (
-                .clk(clk),
-                .rst(rst),
-                .read(read),
-                .load(load_val[j]),
-                .rindex(index),
-                .windex(windex),
-                .datain(valid_val),
-                .dataout(valid[j])
-            );
-            array #(.s_index(s_index)) DIRTY (
-                .clk(clk),
-                .rst(rst),
-                .read(read),
-                .load(load_val[j]),
-                .rindex(index),
-                .windex(windex),
-                .datain(dirty_val),
-                .dataout(dirty_out[j])
-            );
-            array #(.width(s_tag), .s_index(s_index)) TAG (
-                .clk(clk),
-                .rst(rst),
-                .read(read),
-                .load(load_val[j]),
-                .rindex(index),
-                .windex(windex),
-                .datain(tag_in),
-                .dataout(tag[j])
-            );
-            data_array #(.s_offset(s_offset), .s_index(s_index)) DATA (
-                .clk(clk),
-                .rst(rst),
-                .read(read),
-                .write_en(write_val[j]),
-                .rindex(index),
-                .windex(windex),
-                .datain(write_data),
-                .dataout(block[j])
-            );
-        end
-
+        case (s_index)
+            3: begin
+                for (j = 0; j < num_ways; j++) begin : MODULES
+                    BRAM_8x1bit VALID (
+                        .clock(clk),
+                        .data(valid_val),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(valid[j])
+                    );
+                    BRAM_8x1bit DIRTY (
+                        .clock(clk),
+                        .data(dirty_val),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(dirty_out[j])
+                    );
+                    BRAM_8x24bitTag TAG (
+                        .clock(clk),
+                        .data(tag_in),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(tag[j])
+                    );
+                    BRAM_8x256bitData DATA (
+                        .byteena_a(write_val[j]),
+                        .clock(clk),
+                        .data(write_data),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(|write_val[j]),
+                        .q(block[j])
+                    );
+                end
+            end
+            4: begin
+                for (j = 0; j < num_ways; j++) begin : MODULES
+                    BRAM_16x1bit VALID (
+                        .clock(clk),
+                        .data(valid_val),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(valid[j])
+                    );
+                    BRAM_16x1bit DIRTY (
+                        .clock(clk),
+                        .data(dirty_val),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(dirty_out[j])
+                    );
+                    BRAM_16x23bitTag TAG (
+                        .clock(clk),
+                        .data(tag_in),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(tag[j])
+                    );
+                    BRAM_16x256bitData DATA (
+                        .byteena_a(write_val[j]),
+                        .clock(clk),
+                        .data(write_data),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(|write_val[j]),
+                        .q(block[j])
+                    );
+                end
+            end
+            5: begin
+                for (j = 0; j < num_ways; j++) begin : MODULES
+                    BRAM_32x1bit VALID (
+                        .clock(clk),
+                        .data(valid_val),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(valid[j])
+                    );
+                    BRAM_32x1bit DIRTY (
+                        .clock(clk),
+                        .data(dirty_val),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(dirty_out[j])
+                    );
+                    BRAM_32x22bitTag TAG (
+                        .clock(clk),
+                        .data(tag_in),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(tag[j])
+                    );
+                    BRAM_32x256bitData DATA (
+                        .byteena_a(write_val[j]),
+                        .clock(clk),
+                        .data(write_data),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(|write_val[j]),
+                        .q(block[j])
+                    );
+                end
+            end
+            6: begin
+                for (j = 0; j < num_ways; j++) begin : MODULES
+                    BRAM_64x1bit VALID (
+                        .clock(clk),
+                        .data(valid_val),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(valid[j])
+                    );
+                    BRAM_64x1bit DIRTY (
+                        .clock(clk),
+                        .data(dirty_val),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(dirty_out[j])
+                    );
+                    BRAM_64x21bitTag TAG (
+                        .clock(clk),
+                        .data(tag_in),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(tag[j])
+                    );
+                    BRAM_64x256bitData DATA (
+                        .byteena_a(write_val[j]),
+                        .clock(clk),
+                        .data(write_data),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(|write_val[j]),
+                        .q(block[j])
+                    );
+                end
+            end
+            default: begin
+                for (j = 0; j < num_ways; j++) begin : MODULES
+                    array #(.s_index(s_index)) VALID (
+                        .clk(clk),
+                        .rst(rst),
+                        .read(read),
+                        .load(load_val[j]),
+                        .rindex(index),
+                        .windex(windex),
+                        .datain(valid_val),
+                        .dataout(valid[j])
+                    );
+                    array #(.s_index(s_index)) DIRTY (
+                        .clk(clk),
+                        .rst(rst),
+                        .read(read),
+                        .load(load_val[j]),
+                        .rindex(index),
+                        .windex(windex),
+                        .datain(dirty_val),
+                        .dataout(dirty_out[j])
+                    );
+                    array #(.width(s_tag), .s_index(s_index)) TAG (
+                        .clk(clk),
+                        .rst(rst),
+                        .read(read),
+                        .load(load_val[j]),
+                        .rindex(index),
+                        .windex(windex),
+                        .datain(tag_in),
+                        .dataout(tag[j])
+                    );
+                    data_array #(.s_offset(s_offset), .s_index(s_index)) DATA (
+                        .clk(clk),
+                        .rst(rst),
+                        .read(read),
+                        .write_en(write_val[j]),
+                        .rindex(index),
+                        .windex(windex),
+                        .datain(write_data),
+                        .dataout(block[j])
+                    );
+                end
+            end
+        endcase
     endgenerate
+
     lru #(.s_index(s_index), .num_ways(num_ways)) LRU (
         .clk(clk),
         .rst(rst),
