@@ -21,6 +21,10 @@ module source_tb(
 );
 
 initial begin
+    $dumpfile("vcd_comp3.vcd");
+    $dumpvars(0, dut);
+    $dumpon;
+
     $display("Compilation Successful");
     tb_itf.path_mb.put("memory.lst");
     tb_itf.rst = 1'b1;

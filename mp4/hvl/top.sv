@@ -5,6 +5,7 @@ module mp4_tb;
 `timescale 1ns/10ps
 
 /********************* Do not touch for proper compilation *******************/
+
 // Instantiate Interfaces
 tb_itf itf();
 rvfi_itf rvfi(itf.clk, itf.rst);
