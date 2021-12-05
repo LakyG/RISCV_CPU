@@ -119,6 +119,22 @@ always_ff @(posedge itf.clk, posedge itf.rst) begin
             j_instrs <= j_instrs + 1;
         end
 
+        // Check for missprediction only in direction, not target address
+        /*
+        if (dut.cpu.datapath.IDEX_if.predicted_direction != dut.cpu.datapath.br_en &&
+            dut.cpu.datapath.IDEX_if.control_word.opcode == rv32i_types::op_br &&
+            dut.cpu.datapath.IFID_if.en) begin
+            br_misses <= br_misses + 1;
+        end
+        if (dut.cpu.datapath.IDEX_if.predicted_direction != 1 &&
+            (dut.cpu.datapath.IFID_if.opcode == rv32i_types::op_jal ||
+             dut.cpu.datapath.IFID_if.opcode == rv32i_types::op_jalr) &&
+            dut.cpu.datapath.IFID_if.en) begin
+            j_misses <= j_misses + 1;
+        end
+        */
+
+        // Checks for missprediction in direction or target address
         if (dut.cpu.datapath.predictionFailed && dut.cpu.datapath.IFID_if.en &&
             dut.cpu.datapath.IDEX_if.control_word.opcode == rv32i_types::op_br) begin
             br_misses <= br_misses + 1;

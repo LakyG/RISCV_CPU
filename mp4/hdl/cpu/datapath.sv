@@ -125,6 +125,7 @@ assign IFID_if.pc_in = pc;
 assign IFID_if.pc_plus4_in = pc_plus4;
 assign IFID_if.next_pc_in = next_pc;
 assign IFID_if.imem_rdata_in = imem_rdata;
+assign IFID_if.predicted_direction_in = predicted_direction;
 assign imem_address = load_pc ? next_pc : pc;
 //assign imem_address = pc;
 
@@ -133,6 +134,7 @@ assign IDEX_if.pc_in = IFID_if.pc;
 assign IDEX_if.pc_plus4_in = IFID_if.pc_plus4;
 assign IDEX_if.next_pc_in = IFID_if.next_pc;
 assign IDEX_if.imem_rdata_in = IFID_if.imem_rdata;
+assign IDEX_if.predicted_direction_in = IFID_if.predicted_direction;
 assign IDEX_if.i_imm_in = IFID_if.i_imm;
 assign IDEX_if.s_imm_in = IFID_if.s_imm;
 assign IDEX_if.b_imm_in = IFID_if.b_imm;

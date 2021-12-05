@@ -17,11 +17,13 @@ interface pipeline_registers_if();
     rv32i_word pc_plus4_in;
     rv32i_word next_pc_in;
     rv32i_word imem_rdata_in;
+    logic predicted_direction_in;
 
     rv32i_word pc;
     rv32i_word pc_plus4;
     rv32i_word next_pc;
     rv32i_word imem_rdata;
+    logic predicted_direction;
     logic [2:0] funct3;
     logic [6:0] funct7;
     rv32i_opcode opcode;
@@ -73,11 +75,13 @@ interface pipeline_registers_if();
         input pc_plus4_in,
         input next_pc_in,
         input imem_rdata_in,
+        input predicted_direction_in,
 
         output pc,
         output pc_plus4,
         output next_pc,
         output imem_rdata,
+        output predicted_direction,
         output funct3,
         output funct7,
         output opcode,
@@ -99,6 +103,7 @@ interface pipeline_registers_if();
         input pc_plus4_in,
         input next_pc_in,
         input imem_rdata_in,
+        input predicted_direction_in,
 
         input control_word_in,
         input i_imm_in,
@@ -116,6 +121,7 @@ interface pipeline_registers_if();
         output pc_plus4,
         output next_pc,
         output imem_rdata,
+        output predicted_direction,
         output i_imm,
         output s_imm,
         output b_imm,
