@@ -26,6 +26,7 @@ module IDEX_reg (
             IDEX_if.control_word    <= '0;
             IDEX_if.rs1_out         <= '0;
             IDEX_if.rs2_out         <= '0;
+            IDEX_if.funct7          <= '0;
         end
         else if (IDEX_if.en && IDEX_if.flush) begin
             IDEX_if.pc              <= '0;
@@ -44,6 +45,7 @@ module IDEX_reg (
             IDEX_if.control_word    <= '0;
             IDEX_if.rs1_out         <= '0;
             IDEX_if.rs2_out         <= '0;
+            IDEX_if.funct7          <= '0;
         end
         else if (IDEX_if.en) begin
             IDEX_if.pc              <= IDEX_if.pc_in;
@@ -62,6 +64,7 @@ module IDEX_reg (
             IDEX_if.control_word    <= IDEX_if.control_word_in;
             IDEX_if.rs1_out         <= IDEX_if.rs1_out_in;
             IDEX_if.rs2_out         <= IDEX_if.rs2_out_in;
+            IDEX_if.funct7          <= IDEX_if.funct7_in;
         end
     end
 

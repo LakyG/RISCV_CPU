@@ -70,6 +70,17 @@ typedef enum bit [2:0] {
     alu_and = 3'b111
 } alu_ops;
 
+typedef enum bit [2:0] {
+    mul = 3'b000,
+    mulh = 3'b001,
+    mulhsu = 3'b010,
+    mulhu = 3'b011,
+    div = 3'b100,
+    divu = 3'b101,
+    rem = 3'b110,
+    remu = 3'b111
+} muldiv_funct3_t;
+
 
 endpackage : rv32i_types
 
