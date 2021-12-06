@@ -5,10 +5,10 @@ module mp4 #(
     parameter s_offset = 5,
     parameter size = (2**s_offset)*8,   // Cacheline size (bits)
 
-    parameter i_s_index = 3,            // 2^i_s_index number of I-Cache sets
-    parameter i_num_ways = 2,           // I-Cache Associativity
-    parameter d_s_index = 4,            // 2^d_s_indix number of D-Cache sets
-    parameter d_num_ways = 2,           // D-Cache Associativity
+    parameter i_s_index = 5,            // 2^i_s_index number of I-Cache sets
+    parameter i_num_ways = 4,           // I-Cache Associativity
+    parameter d_s_index = 5,            // 2^d_s_indix number of D-Cache sets
+    parameter d_num_ways = 4,           // D-Cache Associativity
     parameter predict_s_index = 7       // Number of sets in Branch Predicitor (BPT and BTB)
 )
 (

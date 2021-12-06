@@ -6,7 +6,7 @@ module target_buffer #(
 )
 (
     input clk,
-    input rst,
+    //input rst,
 
     input logic predict_en,
     input rv32i_word curr_pc,
@@ -77,13 +77,14 @@ module target_buffer #(
 
                 assign predicted_target = targets[curr_index];
 
-                always_ff @(posedge clk, posedge rst) begin
+                always_ff @(posedge clk/*, posedge rst*/) begin
+                    /*
                     if (rst) begin
                         for (int i = 0; i < num_sets; i++) begin
                             targets[i] <= '0;
                         end
                     end
-                    else if (predict_en) begin
+                    else */if (predict_en) begin
                         targets <= next_targets;
                     end
                 end

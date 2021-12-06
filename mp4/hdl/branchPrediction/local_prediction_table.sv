@@ -6,7 +6,7 @@ module local_prediction_table #(
 )
 (
     input clk,
-    input rst,
+    //input rst,
 
     input logic predict_en,
     input rv32i_word curr_pc,
@@ -54,13 +54,14 @@ module local_prediction_table #(
     //     endcase
     // end
 
-    always_ff @ (posedge clk, posedge rst) begin
+    always_ff @ (posedge clk/*, posedge rst*/) begin
+        /*
         if (rst) begin
             for (int i = 0; i < num_sets; i++) begin
                 state[i] <= N_TAKE;
             end
         end
-        else if (predict_en) begin
+        else */if (predict_en) begin
             state <= next_state;
         end
     end

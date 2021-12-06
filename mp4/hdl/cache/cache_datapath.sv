@@ -248,6 +248,47 @@ module cache_datapath #(
                     );
                 end
             end
+            7: begin
+                for (j = 0; j < num_ways; j++) begin : MODULES
+                    BRAM_128x1bit VALID (
+                        .clock(clk),
+                        .data(valid_val),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(valid[j])
+                    );
+                    BRAM_128x1bit DIRTY (
+                        .clock(clk),
+                        .data(dirty_val),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(dirty_out[j])
+                    );
+                    BRAM_128x20bitTag TAG (
+                        .clock(clk),
+                        .data(tag_in),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(load_val[j]),
+                        .q(tag[j])
+                    );
+                    BRAM_128x256bitData DATA (
+                        .byteena_a(write_val[j]),
+                        .clock(clk),
+                        .data(write_data),
+                        .rdaddress(index),
+                        .rden(read),
+                        .wraddress(windex),
+                        .wren(|write_val[j]),
+                        .q(block[j])
+                    );
+                end
+            end
             default: begin
                 for (j = 0; j < num_ways; j++) begin : MODULES
                     array #(.s_index(s_index)) VALID (
