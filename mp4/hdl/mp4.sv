@@ -99,14 +99,14 @@ logic [31:0] dmem_address;
 logic dmem_resp;
 logic [31:0] dmem_rdata;
 logic [31:0] dmem_wdata;
-rv32i_word d_pmem_address;
-logic d_pmem_read;
-logic d_pmem_write;
-logic [size-1:0] d_pmem_wdata;
-logic [size-1:0] d_pmem_rdata;
+rv32i_word d_pmem_address_L1;
+logic d_pmem_read_L1;
+logic d_pmem_write_L1;
+logic [size-1:0] d_pmem_wdata_L1;
+logic [size-1:0] d_pmem_rdata_L1;
 logic [3:0] dmem_byte_enable;
-logic d_pmem_resp;
-logic [31:0] dshadow_address;
+logic d_pmem_resp_L1;
+logic [31:0] dshadow_address, dshadow_address2;
 
 cache #(.s_offset(s_offset), .s_index(d_s_index), .num_ways(d_num_ways)) dcache(
     .*,
@@ -134,16 +134,56 @@ cache #(.s_offset(s_offset), .s_index(d_s_index), .num_ways(d_num_ways)) dcache(
     .mem_resp(dmem_resp),
     .mem_rdata(dmem_rdata),
     // FROM RAM
-    .line_o(d_pmem_rdata),
-    .resp_o(d_pmem_resp),
+    .line_o(d_pmem_rdata_L1),
+    .resp_o(d_pmem_resp_L1),
     // TO RAM
-    .line_i(d_pmem_wdata),
-    .address_i(d_pmem_address),
-    .read_i(d_pmem_read),
-    .write_i(d_pmem_write),
+    .line_i(d_pmem_wdata_L1),
+    .address_i(d_pmem_address_L1),
+    .read_i(d_pmem_read_L1),
+    .write_i(d_pmem_write_L1),
     .shadow_address(dshadow_address)
 );
 
+//l2 dcache
+rv32i_word d_pmem_address;
+logic d_pmem_read;
+logic d_pmem_write;
+logic [size-1:0] d_pmem_wdata;
+logic [size-1:0] d_pmem_rdata;
+logic d_pmem_resp;
+logic [3:0] l2dmem_byte_enable;
+
+
+//comment this out if using L2 cache
+assign d_pmem_address = d_pmem_address_L1;
+assign d_pmem_read = d_pmem_read_L1;
+assign d_pmem_write = d_pmem_write_L1;
+assign d_pmem_wdata = d_pmem_wdata_L1;
+assign d_pmem_rdata_L1 = d_pmem_rdata;
+assign d_pmem_resp_L1 = d_pmem_resp;
+
+// cache #(.s_offset(s_offset), .s_index(5), .num_ways(d_num_ways), .input_size(256)) l2dcache(
+//     .*,
+
+//     // From l1cache
+//     .mem_read(d_pmem_read_L1),
+//     .mem_write(d_pmem_write_L1),
+//     .mem_byte_enable(l2dmem_byte_enable),
+//     .mem_address(d_pmem_address_L1),
+//     .mem_wdata(d_pmem_wdata_L1),
+//     // To l1cache
+//     .mem_resp(d_pmem_resp_L1),
+//     .mem_rdata(d_pmem_rdata_L1),
+//     // FROM RAM
+//     .line_o(d_pmem_rdata),
+//     .resp_o(d_pmem_resp),
+//     // TO RAM
+//     .line_i(d_pmem_wdata),
+//     .address_i(d_pmem_address),
+//     .read_i(d_pmem_read),
+//     .write_i(d_pmem_write),
+//     .shadow_address(dshadow_address2)
+// );
 logic [size-1:0] pmem_wdata_c;
 logic [size-1:0] pmem_rdata_c;
 logic [31:0] pmem_address_c;
