@@ -53,6 +53,8 @@ interface pipeline_registers_if();
     rv32i_word rs1_out;
     rv32i_word rs2_out;
 
+    logic [6:0] funct7_in;
+
     // EX/MEM
     logic br_en_in;
     rv32i_word alu_out_in;    
@@ -116,6 +118,7 @@ interface pipeline_registers_if();
         input rd_in,
         input rs1_out_in,
         input rs2_out_in,
+        input funct7_in,
 
         output pc,
         output pc_plus4,
@@ -133,7 +136,8 @@ interface pipeline_registers_if();
 
         output control_word,
         output rs1_out,
-        output rs2_out
+        output rs2_out,
+        output funct7
     );
 
     modport EXMEM (

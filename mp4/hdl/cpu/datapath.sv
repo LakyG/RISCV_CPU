@@ -88,7 +88,7 @@ logic predict_en;
 
 //alu
 rv32i_word alumux1_out, alumux2_out;
-rv32i_word alu_out;
+rv32i_word alu_out, alu_EX, mdu_EX;
 rv32i_word alu_out_mod2;
 assign alu_out_mod2 = {alu_out[31:1], 1'b0};
 rv32i_word forwardingmux1_out;
@@ -99,6 +99,7 @@ rv32i_word forwardingmux1;
 rv32i_word forwardingmux2;
 assign forwardingmux1 = forwardingmux1_out;
 assign forwardingmux2 = forwardingmux2_out;
+logic mdu_start, mdu_done;
 
 //cmp
 rv32i_word cmpmux_out;
@@ -143,6 +144,7 @@ assign IDEX_if.j_imm_in = IFID_if.j_imm;
 assign IDEX_if.rd_in = IFID_if.rd;
 assign IDEX_if.rs1_in = IFID_if.rs1;
 assign IDEX_if.rs2_in = IFID_if.rs2;
+assign IDEX_if.funct7_in = IFID_if.funct7;
 
 //EXMEM_if
 assign EXMEM_if.pc_in = IDEX_if.pc;
@@ -155,6 +157,7 @@ assign EXMEM_if.rs1_in = IDEX_if.rs1;
 assign EXMEM_if.rs2_in = IDEX_if.rs2;
 assign EXMEM_if.rd_in = IDEX_if.rd;
 assign EXMEM_if.br_en_in = br_en;
+assign EXMEM_if.rs1_out_in = forwardingmux1;
 assign EXMEM_if.rs2_out_in = forwardingmux2;
 assign EXMEM_if.alu_out_in = alu_out;
 
@@ -181,6 +184,8 @@ assign MEMWB_if.br_en_in = EXMEM_if.br_en;
 assign MEMWB_if.alu_out_in = EXMEM_if.alu_out;
 assign MEMWB_if.dmem_rdata_in = dmem_rdata;
 assign MEMWB_if.dmem_byte_enable_in = dmem_byte_enable;
+assign MEMWB_if.rs1_out_in = EXMEM_if.rs1_out;
+assign MEMWB_if.rs2_out_in = EXMEM_if.rs2_out;
 
 /***************************** Registers *************************************/
 // Keep Instruction register named `IR` for RVFI Monitor
@@ -264,7 +269,18 @@ alu ALU(
     .aluop (IDEX_if.control_word.aluop),
     .a (alumux1_out),
     .b (alumux2_out),
-    .f (alu_out)
+    .f (alu_EX)
+);
+
+mdu MDU(
+    .clk,
+    .rst,
+    .start(mdu_start),
+    .funct3 (IDEX_if.control_word.funct3),
+    .a (forwardingmux1),
+    .b (forwardingmux2),
+    .f (mdu_EX),
+    .done(mdu_done)
 );
 
 cmp CMP(
@@ -292,7 +308,8 @@ hazard_unit hazard(
     .MEMWB_en(MEMWB_if.en),
     .IFID_flush(IFID_if.flush),
     .IDEX_flush(IDEX_if.flush),
-    .predict_en(predict_en)
+    .predict_en(predict_en),
+    .mdu_done(mdu_done)
 );
 
 forwarding_unit forwarding(
@@ -338,6 +355,15 @@ always_comb begin : MUXES
     // useful in SystemVerilog.  In this case, we actually use
     // Offensive programming --- making simulation halt with a fatal message
     // warning when an unexpected mux select value occurs
+    if (IDEX_if.funct7 == 7'b1 && IDEX_if.control_word.opcode == op_reg) begin
+        alu_out = mdu_EX;
+        mdu_start = 1'b1;
+    end
+    else begin
+        alu_out = alu_EX;
+        mdu_start = 1'b0;
+
+    end
 
     unique case (predicted_direction)
         datapath_mux_types::nottaken: predicted_pc = pc_plus4;

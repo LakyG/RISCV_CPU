@@ -141,12 +141,18 @@ begin : INSTR_DECODE
                 slt: begin
                     ctrl.cmpop = blt;
                     ctrl.cmpmux_sel = cmpmux::rs2_out;
-                    loadRegfile(regfilemux::br_en);
+                    if (funct7 == 7'b0000001)
+                        loadRegfile(regfilemux::alu_out);
+                    else
+                        loadRegfile(regfilemux::br_en);
                 end
                 sltu: begin
                     ctrl.cmpop = bltu;
                     ctrl.cmpmux_sel = cmpmux::rs2_out;
-                    loadRegfile(regfilemux::br_en);
+                    if (funct7 == 7'b0000001)
+                        loadRegfile(regfilemux::alu_out);
+                    else
+                        loadRegfile(regfilemux::br_en);
                 end
                 sr: begin
                     loadRegfile(regfilemux::alu_out);

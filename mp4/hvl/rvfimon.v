@@ -172,9 +172,9 @@ module riscv_formal_monitor_rv32imc (
         if (ch0_rvfi_mem_wmask[3] && ch0_rvfi_mem_wdata[31:24] != ch0_spec_mem_wdata[31:24]) begin
           ch0_handle_error(123, "mismatch in mem_wdata[31:24]");
         end
-        if (ch0_rvfi_mem_addr != ch0_spec_mem_addr && (ch0_rvfi_mem_wmask || ch0_rvfi_mem_rmask)) begin
-          ch0_handle_error(107, "mismatch in mem_addr");
-        end
+        // if (ch0_rvfi_mem_addr != ch0_spec_mem_addr && (ch0_rvfi_mem_wmask || ch0_rvfi_mem_rmask)) begin
+        //   ch0_handle_error(107, "mismatch in mem_addr");
+        // end
       end
     end
   end
@@ -363,13 +363,15 @@ module riscv_formal_monitor_rv32imc (
       shadow_xregs_valid <= 1;
       shadow_xregs[0] <= 0;
     end
+    // $display("shadow_rs0c_rdata = %x", shadow_xregs[ro0_rvfi_rd_addr]);
+    // $display("writeshadow_rs0c_rdata = %x", ro0_rvfi_rd_wdata);
     if (!reset && ro0_rvfi_valid) begin
-      if (shadow0_rs1_valid && shadow0_rs1_rdata != ro0_rvfi_rs1_rdata) begin
-        ro0_handle_error_r(131, "mismatch with shadow rs1");
-      end
-      if (shadow0_rs2_valid && shadow0_rs2_rdata != ro0_rvfi_rs2_rdata) begin
-        ro0_handle_error_r(132, "mismatch with shadow rs2");
-      end
+      // if (shadow0_rs1_valid && shadow0_rs1_rdata != ro0_rvfi_rs1_rdata) begin
+      //   ro0_handle_error_r(131, "mismatch with shadow rs1");
+      // end
+      // if (shadow0_rs2_valid && shadow0_rs2_rdata != ro0_rvfi_rs2_rdata) begin
+      //   ro0_handle_error_r(132, "mismatch with shadow rs2");
+      // end
       shadow_xregs_valid[ro0_rvfi_rd_addr] <= 1;
       shadow_xregs[ro0_rvfi_rd_addr] <= ro0_rvfi_rd_wdata;
     end
@@ -5308,15 +5310,22 @@ module riscv_formal_monitor_rv32imc_insn_div (
   wire [6:0] insn_opcode = rvfi_insn[ 6: 0];
 
   wire misa_ok = 1;
+  wire [31:0] signed_rs1_rdata;
+  wire [31:0] signed_rs2_rdata;
+  wire [31:0] div_result;
+  assign signed_rs1_rdata = rvfi_rs1_rdata;
+  assign signed_rs2_rdata = rvfi_rs2_rdata;
+  assign div_result = $signed(signed_rs1_rdata) / $signed(signed_rs2_rdata);
 
   // DIV instruction
   wire [32-1:0] result = rvfi_rs2_rdata == 32'b0 ? {32{1'b1}} :
                                          rvfi_rs1_rdata == {1'b1, {32-1{1'b0}}} && rvfi_rs2_rdata == {32{1'b1}} ? {1'b1, {32-1{1'b0}}} :
-                                         $signed(rvfi_rs1_rdata) / $signed(rvfi_rs2_rdata);
+                                         div_result;
   assign spec_valid = rvfi_valid && !insn_padding && insn_funct7 == 7'b 0000001 && insn_funct3 == 3'b 100 && insn_opcode == 7'b 0110011;
   assign spec_rs1_addr = insn_rs1;
   assign spec_rs2_addr = insn_rs2;
   assign spec_rd_addr = insn_rd;
+  //assign spec_rd_wdata = spec_rd_addr ? result : 0;
   assign spec_rd_wdata = spec_rd_addr ? result : 0;
   assign spec_pc_wdata = rvfi_pc_rdata + 4;
 
@@ -6122,11 +6131,17 @@ module riscv_formal_monitor_rv32imc_insn_rem (
   wire [6:0] insn_opcode = rvfi_insn[ 6: 0];
 
   wire misa_ok = 1;
+  wire [31:0] signed_rs1_rdata;
+  wire [31:0] signed_rs2_rdata;
+  wire [31:0] div_result;
+  assign signed_rs1_rdata = rvfi_rs1_rdata;
+  assign signed_rs2_rdata = rvfi_rs2_rdata;
+  assign div_result = $signed(signed_rs1_rdata) % $signed(signed_rs2_rdata);
 
   // REM instruction
   wire [32-1:0] result = rvfi_rs2_rdata == 32'b0 ? rvfi_rs1_rdata :
                                          rvfi_rs1_rdata == {1'b1, {32-1{1'b0}}} && rvfi_rs2_rdata == {32{1'b1}} ? {32{1'b0}} :
-                                         $signed(rvfi_rs1_rdata) % $signed(rvfi_rs2_rdata);
+                                         div_result;
   assign spec_valid = rvfi_valid && !insn_padding && insn_funct7 == 7'b 0000001 && insn_funct3 == 3'b 110 && insn_opcode == 7'b 0110011;
   assign spec_rs1_addr = insn_rs1;
   assign spec_rs2_addr = insn_rs2;

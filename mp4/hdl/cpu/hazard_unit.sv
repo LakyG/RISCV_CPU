@@ -15,6 +15,7 @@ module hazard_unit
     input logic predictionFailed,
     input rv32i_opcode opcode,
     input rv32i_reg rd_ex,
+    input logic mdu_done,
 
     // From MEM Stage
     input logic dmem_read_mem,
@@ -148,13 +149,13 @@ module hazard_unit
         //     IFID_en = 0;
         // end
 
-        if (imem_resp && (dmem_resp || ~dmem_request)) begin
+        if (imem_resp && (dmem_resp || ~dmem_request) && mdu_done) begin
             IFID_en  = 1;
             IDEX_en  = 1;
             EXMEM_en = 1;
             MEMWB_en = 1;
         end
-        else if (~imem_resp && dmem_resp && ~missprediction) begin
+        else if (~imem_resp && dmem_resp && ~missprediction && mdu_done) begin
             IFID_en  = 1;
             IDEX_en  = 1;
             EXMEM_en = 1;
@@ -162,13 +163,13 @@ module hazard_unit
             IFID_flush = 1;
         end
 
-        if (load_use_hazard && EXMEM_en) begin
+        if (load_use_hazard && EXMEM_en && mdu_done) begin
             IFID_en = 0;
             IDEX_en = 1;
             IDEX_flush = 1;
         end
 
-        if (missprediction && imem_resp && (dmem_resp || ~dmem_request)) begin
+        if (missprediction && imem_resp && (dmem_resp || ~dmem_request) && mdu_done) begin
             IFID_en = 1;
             IDEX_en = 1;
             IFID_flush = 1;
