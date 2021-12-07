@@ -5,6 +5,7 @@ import cache_types::*;
 import rv32i_types::*;
 
 module cache #(
+    parameter input_size = 32, //32 for L1, 256 for L2
     parameter s_offset = 4,
     parameter size = (2**s_offset)*8, //cacheline size
     parameter s_index  = 3,
@@ -24,10 +25,10 @@ module cache #(
     input logic mem_write,
     input logic [3:0] mem_byte_enable,
     input rv32i_word mem_address,
-    input rv32i_word mem_wdata,
+    input [input_size-1:0] mem_wdata,
     // To CPU
     output logic mem_resp,
-    output rv32i_word mem_rdata,
+    output [input_size-1:0] mem_rdata,
 
     // FROM RAM
     input logic [size-1:0] line_o,
@@ -85,7 +86,7 @@ cache_datapath #(.s_offset(s_offset), .s_index(s_index), .num_ways(num_ways)) da
 
 );
 
-bus_adapter #(.s_offset(s_offset)) bus_adapter (
+bus_adapter #(.s_offset(s_offset), .input_size(input_size)) bus_adapter (
     .*,
     .address(mem_address_bus),
     .waddress(mem_address)
