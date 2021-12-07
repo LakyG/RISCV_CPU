@@ -23,7 +23,7 @@ module source_tb(
 initial begin
     //TODO: Add the correct filename wanted here before starting simulation!
     //TODO: Comment these out after comp1-comp3 VCDs have been generated.
-    // $dumpfile("vcd_comp2_i_largerCaches.vcd");
+    // $dumpfile("vcd_comp3_m_ext.vcd");
     // $dumpvars(0, dut);
     // $dumpon;
 

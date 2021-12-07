@@ -71,6 +71,7 @@ module IFID_reg (
             IFID_if.next_pc     <= 32'h64;
             IFID_if.imem_rdata  <= '0;
             IFID_if.predicted_direction <= 1'b0;
+            IFID_if.g_history   <= '0;
         end
         else if (IFID_if.en && IFID_if.flush) begin
             IFID_if.pc          <= '0;
@@ -78,6 +79,7 @@ module IFID_reg (
             IFID_if.next_pc     <= '0;
             IFID_if.imem_rdata  <= '0;
             IFID_if.predicted_direction <= '0;
+            IFID_if.g_history   <= '0;
         end
         else if (IFID_if.en) begin
             IFID_if.pc          <= IFID_if.pc_in;
@@ -85,6 +87,7 @@ module IFID_reg (
             IFID_if.next_pc     <= IFID_if.next_pc_in;
             IFID_if.imem_rdata  <= IFID_if.imem_rdata_in;
             IFID_if.predicted_direction <= IFID_if.predicted_direction_in;
+            IFID_if.g_history   <= IFID_if.g_history_in;
         end
     end
 

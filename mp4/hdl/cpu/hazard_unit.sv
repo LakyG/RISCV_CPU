@@ -39,9 +39,6 @@ module hazard_unit
     logic dmem_request;
     logic load_use_hazard;
 
-    // Check if a flush due to branch misprediction or jump is needed
-    assign missprediction = predictionFailed;
-
     // Check for any D-Mem request
     assign dmem_request = dmem_read_mem | dmem_write_mem;
 
@@ -53,16 +50,16 @@ module hazard_unit
         pc_en = 0;
 
         // if (~load_use_hazard) begin                                 // Check for Load-Use Hazard
-        //     if ((imem_resp && ~dmem_request) || missprediction) begin   // Check for PC enable conditions
+        //     if ((imem_resp && ~dmem_request) || predictionFailed) begin   // Check for PC enable conditions
         //         pc_en = 1;
         //     end 
         // end
 
-        // if ((IFID_en && ~IFID_flush) || missprediction) begin
+        // if ((IFID_en && ~IFID_flush) || predictionFailed) begin
         //     pc_en = 1;
         // end
 
-        if ((imem_resp && ~IDEX_flush && IFID_en) || (imem_resp && missprediction)) begin
+        if ((imem_resp && ~IDEX_flush && IFID_en) || (imem_resp && predictionFailed)) begin
             pc_en = 1;
         end
     end
@@ -100,28 +97,28 @@ module hazard_unit
         //     EXMEM_en = 1;
         //     MEMWB_en = 1;
         // end
-        // else if (~imem_resp && dmem_resp && ~missprediction) begin
+        // else if (~imem_resp && dmem_resp && ~predictionFailed) begin
         //     IFID_en  = 1;
         //     IDEX_en  = 1;
         //     EXMEM_en = 1;
         //     MEMWB_en = 1;
         //     IFID_flush = 1;
         // end
-        // else if (~imem_resp && dmem_resp && missprediction) begin
+        // else if (~imem_resp && dmem_resp && predictionFailed) begin
         //     IFID_en  = 1;
         //     IDEX_en  = 1;
         //     EXMEM_en = 1;
         //     MEMWB_en = 1;
         //     IFID_flush = 1;
         // end
-        // else if (~imem_resp && ~dmem_request && ~missprediction) begin
+        // else if (~imem_resp && ~dmem_request && ~predictionFailed) begin
         //     IFID_en  = 1;
         //     IDEX_en  = 1;
         //     EXMEM_en = 1;
         //     MEMWB_en = 1;
         //     IFID_flush = 1;
         // end
-        // else if (~imem_resp && ~dmem_request && missprediction) begin
+        // else if (~imem_resp && ~dmem_request && predictionFailed) begin
         //     IFID_en  = 1;
         //     IDEX_en  = 1;
         //     EXMEM_en = 1;
@@ -130,7 +127,7 @@ module hazard_unit
         // end
 
         // // Check for Branch Misprediction (MP3-CP2 is static branch prediction)
-        // if (missprediction) begin
+        // if (predictionFailed) begin
         //     IFID_en = 1;
         //     IDEX_en = 1;
         //     EXMEM_en = 1;
@@ -155,7 +152,7 @@ module hazard_unit
             EXMEM_en = 1;
             MEMWB_en = 1;
         end
-        else if (~imem_resp && dmem_resp && ~missprediction && mdu_done) begin
+        else if (~imem_resp && dmem_resp && ~predictionFailed && mdu_done) begin
             IFID_en  = 1;
             IDEX_en  = 1;
             EXMEM_en = 1;
@@ -169,7 +166,7 @@ module hazard_unit
             IDEX_flush = 1;
         end
 
-        if (missprediction && imem_resp && (dmem_resp || ~dmem_request) && mdu_done) begin
+        if (predictionFailed && imem_resp && (dmem_resp || ~dmem_request) && mdu_done) begin
             IFID_en = 1;
             IDEX_en = 1;
             IFID_flush = 1;

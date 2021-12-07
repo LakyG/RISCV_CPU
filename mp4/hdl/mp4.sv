@@ -9,7 +9,9 @@ module mp4 #(
     parameter i_num_ways = 4,           // I-Cache Associativity
     parameter d_s_index = 5,            // 2^d_s_indix number of D-Cache sets
     parameter d_num_ways = 4,           // D-Cache Associativity
-    parameter predict_s_index = 7       // Number of sets in Branch Predicitor (BPT and BTB)
+    
+    parameter predict_s_index = 7,      // Number of sets in Branch Predicitor (BPT and BTB)
+    parameter predict_g_history = 7     // Number of bits for the Global History Register
 )
 (
     input clk,
@@ -39,7 +41,7 @@ module mp4 #(
     output [63:0] pmem_wdata
 );
 
-cpu # (.predict_s_index(predict_s_index)) cpu (.*);
+cpu # (.predict_s_index(predict_s_index), .predict_g_history(predict_g_history)) cpu (.*);
 
 //icache
 logic imem_read;

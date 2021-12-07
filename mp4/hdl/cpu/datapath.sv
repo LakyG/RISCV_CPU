@@ -4,7 +4,8 @@ import rv32i_types::*;
 import datapath_mux_types::*;
 
 module datapath # (
-    parameter predict_s_index = 7
+    parameter predict_s_index = 7,
+    parameter predict_g_history = 7
 )
 (
     input clk,
@@ -65,10 +66,10 @@ logic [4:0] rs1_ir, rs2_ir, rd;
 //assign rs2 = rs2_ir;
 //assign opcode_out = opcode;
 
-pipeline_registers_if IFID_if();
-pipeline_registers_if IDEX_if();
-pipeline_registers_if EXMEM_if();
-pipeline_registers_if MEMWB_if();
+pipeline_registers_if #(.s_history(predict_g_history)) IFID_if();
+pipeline_registers_if #(.s_history(predict_g_history)) IDEX_if();
+pipeline_registers_if #(.s_history(predict_g_history)) EXMEM_if();
+pipeline_registers_if #(.s_history(predict_g_history)) MEMWB_if();
 
 //regfile
 rv32i_word regfilemux_out;
@@ -82,6 +83,8 @@ rv32i_word pc_plus4;
 assign pc_plus4 = pc + 4;
 logic load_pc;
 rv32i_word next_pc;
+rv32i_opcode IF_opcode;
+assign IF_opcode = rv32i_opcode'(imem_rdata[6:0]);
 
 //hazard
 logic predict_en;
@@ -112,6 +115,7 @@ rv32i_word predicted_pc;
 
 predictmux_t predicted_direction;
 rv32i_word predicted_target;
+logic [predict_g_history-1:0] g_history;
 
 //dmem
 store_funct3_t store_funct3;
@@ -127,6 +131,7 @@ assign IFID_if.pc_plus4_in = pc_plus4;
 assign IFID_if.next_pc_in = next_pc;
 assign IFID_if.imem_rdata_in = imem_rdata;
 assign IFID_if.predicted_direction_in = predicted_direction;
+assign IFID_if.g_history_in = g_history;
 assign imem_address = load_pc ? next_pc : pc;
 //assign imem_address = pc;
 
@@ -136,6 +141,7 @@ assign IDEX_if.pc_plus4_in = IFID_if.pc_plus4;
 assign IDEX_if.next_pc_in = IFID_if.next_pc;
 assign IDEX_if.imem_rdata_in = IFID_if.imem_rdata;
 assign IDEX_if.predicted_direction_in = IFID_if.predicted_direction;
+assign IDEX_if.g_history_in = IFID_if.g_history;
 assign IDEX_if.i_imm_in = IFID_if.i_imm;
 assign IDEX_if.s_imm_in = IFID_if.s_imm;
 assign IDEX_if.b_imm_in = IFID_if.b_imm;
@@ -224,12 +230,15 @@ pc_register PC(
 );
 
 // Branch Prediction
-local_prediction_table #(.s_index(predict_s_index)) bpt (
+local_prediction_table #(.s_index(predict_s_index), .s_history(predict_g_history)) bpt (
     .*,
     .predict_en(predict_en),
     .curr_pc(pc),
     .resolved_pc(IDEX_if.pc),
     .predictionFailed(predictionFailed),
+    .g_history(g_history),
+    .resolved_g_history(IDEX_if.g_history),
+    .IF_opcode(IF_opcode),
 
     .predicted_direction(predicted_direction)
 );
@@ -241,8 +250,20 @@ target_buffer #(.s_index(predict_s_index)) btb (
     .resolved_pc(IDEX_if.pc),
     .predictionFailed(predictionFailed),
     .expected_next_pc(expected_next_pc),
+    .g_history(g_history),
+    .resolved_g_history(IDEX_if.g_history),
+    .EX_opcode(IDEX_if.control_word.opcode),
 
     .predicted_target(predicted_target)
+);
+
+global_history #(.s_history(predict_g_history)) gpt (
+    .*,
+    .predict_en(predict_en),
+    .prev_direction(predicted_direction),
+    .IF_opcode(IF_opcode),
+
+    .g_history(g_history)
 );
 
 control control(

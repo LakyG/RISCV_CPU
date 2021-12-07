@@ -2,29 +2,33 @@ import rv32i_types::*;
 import datapath_mux_types::*;
 
 module target_buffer #(
-    parameter s_index = 7   // Number of bits used to index
+    parameter s_index = 7,   // Number of bits used to index
+    parameter addr_start = 2,
+    parameter s_history = 7
 )
 (
     input clk,
-    //input rst,
+    input rst,
 
     input logic predict_en,
     input rv32i_word curr_pc,
     input rv32i_word resolved_pc,
     input logic predictionFailed,
     input rv32i_word expected_next_pc,
+    input logic [s_history-1:0] g_history,
+    input logic [s_history-1:0] resolved_g_history,
+    input rv32i_opcode EX_opcode,
 
     output rv32i_word predicted_target
 );
 
-    localparam addr_start = 2;
     localparam num_sets = 2**s_index;
 
     logic [s_index-1:0] curr_index;
     logic [s_index-1:0] resolved_index; 
 
-    assign curr_index = curr_pc[addr_start +: s_index];
-    assign resolved_index = resolved_pc[addr_start +: s_index];
+    assign curr_index = curr_pc[addr_start +: s_index]; // ^ g_history;
+    assign resolved_index = resolved_pc[addr_start +: s_index]; // ^ resolved_g_history;
 
     /*
     // TODO: Create new BRAM for BTB that have a RST signal
@@ -77,14 +81,13 @@ module target_buffer #(
 
                 assign predicted_target = targets[curr_index];
 
-                always_ff @(posedge clk/*, posedge rst*/) begin
-                    /*
+                always_ff @(posedge clk, posedge rst) begin
                     if (rst) begin
                         for (int i = 0; i < num_sets; i++) begin
                             targets[i] <= '0;
                         end
                     end
-                    else */if (predict_en) begin
+                    else if (predict_en) begin
                         targets <= next_targets;
                     end
                 end
@@ -92,7 +95,8 @@ module target_buffer #(
                 always_comb begin
                     next_targets = targets;
 
-                    if (predictionFailed) begin
+                    if (predictionFailed && (EX_opcode == rv32i_types::op_br || EX_opcode == rv32i_types::op_jal ||
+                        EX_opcode == rv32i_types::op_jalr)) begin
                         next_targets[resolved_index] = expected_next_pc;
                     end
                 end

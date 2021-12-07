@@ -291,7 +291,7 @@ always @(posedge itf.clk iff rvfi.commit) rvfi.order <= rvfi.order + 1;
 //The following signals need to be set:
 //icache signals:
     assign itf.inst_read = dut.imem_read;
-    assign itf.inst_addr = dut.ishadow_address;
+    assign itf.inst_addr = /*dut.imem_address; // */dut.ishadow_address;
     assign itf.inst_resp = dut.imem_resp;
     assign itf.inst_rdata = dut.imem_rdata;
 
@@ -299,7 +299,7 @@ always @(posedge itf.clk iff rvfi.commit) rvfi.order <= rvfi.order + 1;
     assign itf.data_read = dut.dmem_read;
     assign itf.data_write = dut.dmem_write;
     assign itf.data_mbe = dut.dmem_byte_enable;
-    assign itf.data_addr = dut.dshadow_address;
+    assign itf.data_addr = dut.dmem_address; // dut.dshadow_address;
     assign itf.data_wdata = dut.dmem_wdata;
     assign itf.data_resp = dut.dmem_resp;
     assign itf.data_rdata = dut.dmem_rdata;
